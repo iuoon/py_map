@@ -4,14 +4,14 @@
 import wx
 import requests
 import time
-import xlwt
 import os
-import sys
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 import threading
+import city
+from openpyxl import Workbook
 
-APP_TITLE = u'爬取数据-北京'
+APP_TITLE = u'爬取数据'
 APP_ICON = 'res/python.ico'
 
 class mainFrame(wx.Frame):
@@ -41,9 +41,20 @@ class mainFrame(wx.Frame):
         self.area = wx.TextCtrl(self, -1, '', pos=(10, 60), size=(320, 160), name='area', style=wx.TE_LEFT | wx.TE_MULTILINE)
 
 
+
         self.btn_start = wx.Button(self, -1, u'开始', pos=(350, 20), size=(100, 25))
         self.btn_pause = wx.Button(self, -1, u'暂停', pos=(350, 50), size=(100, 25))
         self.btn_close = wx.Button(self, -1, u'关闭窗口', pos=(350, 80), size=(100, 25))
+
+        wx.StaticText(self, -1, u'选择省市', pos=(350, 120), size=(50, -1), style=wx.ALIGN_RIGHT)
+        pros=[]
+        for key in city.province_city:
+            pros.append(key)
+        self.ch1 = wx.ComboBox(self,-1,value='选择省',choices=pros,pos=(350, 140))
+        self.ch2 = wx.ComboBox(self,-1,value='选择市',choices=[],pos=(350, 170))
+        self.city = '-1'  # 当前城市
+        self.preCity = '-1'  # 上一次城市
+        self.cityTip = wx.StaticText(self, -1, u'当前城市：未选择', pos=(350, 200), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
 
         # 控件事件
         #self.gd_key.Bind(wx.EVT_TEXT, self.EvtText)
@@ -52,9 +63,11 @@ class mainFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnClose, self.btn_close)
         self.btn_start.Bind(wx.EVT_LEFT_DOWN, self.OnStartDown)
         self.Bind(wx.EVT_BUTTON, self.OnPauseDown, self.btn_pause)
-
+        self.Bind(wx.EVT_COMBOBOX, self.OnProvinceChoice, self.ch1)
+        self.Bind(wx.EVT_COMBOBOX, self.OnCityChoice, self.ch2)
+        # 暂停按钮启动时不可点击
         self.btn_pause.Disable()
-
+        # 创建异步执行爬取数据的线程
         self.t1 = threading.Thread(target=self.startWork, args=(self.gd_key.GetValue(),))
 
         # 系统事件
@@ -79,12 +92,13 @@ class mainFrame(wx.Frame):
         self.Refresh()
         evt.Skip()
 
-    workbook = xlwt.Workbook()
-    file1 = os.path.abspath('.')+'\\'+time.strftime("%Y%m%d")+'\\'+ time.strftime("%Y%m%d-%H")+'.xls'
+    workbook = Workbook()
+    file1 =''
     iswriting=False   # 是否正在开始写xls
     ispause = False   # 是否暂停
     isreptiling = False  #是否在爬取中
     isrunsched =False #是否开启了调度
+
     def OnClose(self, evt):
         # 关闭窗口事件函数
         dlg = wx.MessageDialog(None, u'确定要关闭本窗口？', u'操作提示', wx.YES_NO | wx.ICON_QUESTION)
@@ -97,27 +111,54 @@ class mainFrame(wx.Frame):
 
 
     def OnStartDown(self, evt):
+        if self.city == '' or self.city == '-1':
+            self.area.AppendText('[warn]请选择城市！！！\n')
+            return
         self.gd_key.Disable()
         self.btn_start.Disable()
         self.btn_pause.Enable()
+        self.ch1.Disable()
+        self.ch2.Disable()
         key = self.gd_key.GetValue()
         if key == '':
             key = '0b1804994cd63974f873a29a269d65e7'
         if self.ispause:
+            if self.preCity == '-1':
+                self.preCity = self.city
+            if self.preCity != self.city:
+                # 暂停后又开始时切换了城市，原来已爬取的城市立即保存，开始爬取新城市
+                if self.iswriting:
+                    self.workbook.save(self.file1)
+
             self.area.AppendText('[info]恢复爬取\n')
             self.ispause=False
             self.scheduler.resume()
         else:
             self.area.AppendText('[info]key='+key+'\n')
             self.t1 = threading.Thread(target=self.startWork, args=(key,))
-            self.t1.setDaemon(True)
+            self.t1.setDaemon(True)  # 设置为守护线程
             self.t1.start()
 
     def OnPauseDown(self, evt):
         self.gd_key.Enable()
         self.btn_start.Enable()
         self.btn_pause.Disable()
+        self.ch1.Enable()
+        self.ch2.Enable()
         self.pauseWork()
+
+    def OnProvinceChoice(self,evt):
+        province = evt.GetString()
+        citys = city.province_city[province]
+        self.ch2.Clear()
+        for key in citys:
+            self.ch2.Append(key)
+
+    def OnCityChoice(self,evt):
+        self.city = evt.GetString()
+        print(self.city)
+        self.cityTip.SetLabelText('当前城市：'+self.city)
+
 
     def LocaDiv2(self, ploy):
         list = []
@@ -139,30 +180,31 @@ class mainFrame(wx.Frame):
 
     def reptileMap(self, key):
         print('key='+key)
-        print('[info]开始爬取数据...')
+        print('[info]开始爬取数据:'+self.city)
         self.area.Clear()
         self.area.AppendText('[info]使用key'+key)
         self.area.AppendText('[info]开始爬取数据...\n')
         startTime = time.time()
-        locs = self.LocaDiv2('116.208904,39.747315,116.550123,40.028783')
+        print(city.city_pos[self.city])
+        locs = self.LocaDiv2(city.city_pos[self.city])
         date = time.strftime("%Y%m%d-%H")
 
-        dirs = os.path.abspath('.')+'\\'+time.strftime("%Y%m%d")
+        dirs = os.path.abspath('.')+'\\'+self.city + '\\' + time.strftime("%Y%m%d")
         # 创建文件夹
         if not os.path.exists(dirs):
             os.makedirs(dirs)
         # 删除旧文件
-        self.file1 = dirs+'\\'+ date+'.xls'
+        self.file1 = dirs+'\\'+  date +'.xlsx'
         if os.path.exists(self.file1):
             os.remove(self.file1)
 
         dttime = time.strftime("%Y-%m-%d %H:%M:%S")
-        count = 0
-        self.workbook = xlwt.Workbook()
-        sheet1 = self.workbook.add_sheet('beijing')
+        count = 1
+        self.workbook = Workbook()
+        sheet1 = self.workbook.create_sheet(self.city,0)
         keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'datetime']
         for i in range(0, len(keys1)):
-            sheet1.write(0, i, keys1[i])       # 写入表头
+            sheet1.cell(row=1, column=i+1).value = keys1[i]  # 写入表头
 
         self.iswriting =True
         # if self.isreptiling != True:
@@ -209,14 +251,15 @@ class mainFrame(wx.Frame):
                 rspeed = road['speed'] if 'speed' in road else '0'
                 rstatus = road['status'] if 'status' in road else ''
 
-                sheet1.write(count, 0, rangle)
-                sheet1.write(count, 1, rdirection)
-                sheet1.write(count, 2, rlcodes)
-                sheet1.write(count, 3, rname)
-                sheet1.write(count, 4, rpolyline)
-                sheet1.write(count, 5, rspeed)
-                sheet1.write(count, 6, rstatus)
-                sheet1.write(count, 7, dttime)
+                sheet1.cell(row=count, column=1).value = rangle
+                sheet1.cell(row=count, column=2).value = rdirection
+                sheet1.cell(row=count, column=3).value = rlcodes
+                sheet1.cell(row=count, column=4).value = rname
+                sheet1.cell(row=count, column=5).value = rpolyline
+                sheet1.cell(row=count, column=6).value = rspeed
+                sheet1.cell(row=count, column=7).value = rstatus
+                sheet1.cell(row=count, column=8).value = dttime
+
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
         self.workbook.save(self.file1)
         endTime = time.time()
@@ -229,6 +272,7 @@ class mainFrame(wx.Frame):
 
     scheduler = BlockingScheduler()
     def startWork(self, key):
+        # 开始首次爬取，首次爬取过程中不会暂停，其他时候可以暂停
         self.reptileMap(key)
         self.isrunsched = True
         # 周一到周日,每小时执行一次   每5秒second='*/5' hour='0-23'
