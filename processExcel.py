@@ -68,20 +68,9 @@ class mainFrame(wx.Frame):
                 tarr.append(value)
                 for i in range (0,nlen):
                     tarr.append(value[i:i+1])
-                    if i+2 < nlen:
-                        tarr.append(value[i:i+2])
-                    if i+3 < nlen:
-                        tarr.append(value[i:i+3])
-                    if i+4 < nlen:
-                        tarr.append(value[i:i+4])
-                    if i+5 < nlen:
-                        tarr.append(value[i:i+5])
-                    if i+6 < nlen:
-                        tarr.append(value[i:i+6])
-                    if i+7 < nlen:
-                        tarr.append(value[i:i+7])
-                    if i+8 < nlen:
-                        tarr.append(value[i:i+8])
+                    for j in range (2, nlen-1):
+                        if j < nlen:
+                            tarr.append(value[i:j])
                 for i in range (1,nlen):
                     tarr.append(value[0:i])
 
