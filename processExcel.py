@@ -1,6 +1,7 @@
 import wx
 import wx.lib.filebrowsebutton
 from openpyxl import load_workbook
+import json
 
 APP_TITLE = u'表格处理'
 APP_ICON = 'res/python.ico'
@@ -17,8 +18,9 @@ class mainFrame(wx.Frame):
 
         self.tip = wx.StaticText(self, -1, u'', pos=(20, 100), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
 
-        self.obj1={'X':[],'YY':[],'OOO':[],'UUUU':[],'@':[]}
-        self.obj2={'X':[],'YY':[],'OOO':[],'UUUU':[]}
+        self.obj1={}
+        self.obj2={}
+        self.obj1['@@@']=[]
 
 
     def On_size(self, evt):
@@ -30,6 +32,17 @@ class mainFrame(wx.Frame):
         """"""
         self.btn_selectFile.Disable()
         self.tip.SetLabel('数据处理中，请不要关闭')
+
+        f = open("config.json", encoding='utf-8')
+        if f is None:
+            self.tip.SetLabel('配置文件config.json不存在，请放在同级目录')
+            return
+        conf = json.load(f)
+
+        for key in conf:
+            self.obj1[conf[key]]=[]
+            self.obj2[conf[key]]=[]
+
         print(self.btn_selectFile.GetValue())
         wb = load_workbook(self.btn_selectFile.GetValue())
         sheet = wb.active
@@ -43,18 +56,20 @@ class mainFrame(wx.Frame):
             if value1 is None and value2 is None:
                 continue
             if value1 is None :
-                value1=" @= "
+                value1=" @@@= "
             a1=value1.split("=")
             atype=a1[0].split(" ")[1]
             #print(atype,',',a1[1],',',value2,',',value3)
-            if atype == 'A':
-                atype='X'
-            if atype == 'BB':
-                atype='YY'
-            if atype == 'CC':
-                atype='OOO'
-            if atype == 'DX':
-                atype='UUUU'
+            # if atype == 'A':
+            #     atype='X'
+            # if atype == 'BB':
+            #     atype='YY'
+            # if atype == 'CC':
+            #     atype='OOO'
+            # if atype == 'DX':
+            #     atype='UUUU'
+            if atype in conf:
+                atype = conf[atype]
             obj1={'mc':0,'type':atype, 'value':a1[1],'prefix':a1[0], 'row':r}  # mc--匹配度  type--类型  value--字符串 row--所在字符串的行数 @占位
             obj2={'type':value3, 'value':value2, 'row':r}
             self.obj1[atype].append(obj1)
@@ -75,7 +90,7 @@ class mainFrame(wx.Frame):
                             obj1['mc'] += 1
                 # 查找完毕，开始排序,默认最大放在最前面
                 arr1.sort(key=lambda obj: obj['mc'], reverse=True)
-                #print(arr1[0],arr1[1])
+                print(arr1[0],obj2['value'])
                 if arr1[0]['mc'] > 0:
                     sheet.cell(row=obj2['row'], column=4).value = arr1[0]['prefix']+'='+arr1[0]['value']
                 for ob in arr1:
