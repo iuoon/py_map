@@ -1,7 +1,7 @@
 import wx
 import wx.lib.filebrowsebutton
 from openpyxl import load_workbook
-import json
+import json,os
 
 APP_TITLE = u'表格处理'
 APP_ICON = 'res/python.ico'
@@ -33,7 +33,7 @@ class mainFrame(wx.Frame):
         self.btn_selectFile.Disable()
         self.tip.SetLabel('数据处理中，请不要关闭')
 
-        f = open("config.json", encoding='utf-8')
+        f = open(os.path.abspath('.')+"\\config.json", encoding='utf-8')
         if f is None:
             self.tip.SetLabel('配置文件config.json不存在，请放在同级目录')
             return
@@ -90,7 +90,7 @@ class mainFrame(wx.Frame):
                             obj1['mc'] += 1
                 # 查找完毕，开始排序,默认最大放在最前面
                 arr1.sort(key=lambda obj: obj['mc'], reverse=True)
-                print(arr1[0],obj2['value'])
+                #print(arr1[0],obj2['value'])
                 if arr1[0]['mc'] > 0:
                     sheet.cell(row=obj2['row'], column=4).value = arr1[0]['prefix']+'='+arr1[0]['value']
                 for ob in arr1:
