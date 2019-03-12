@@ -17,7 +17,7 @@ class mainFrame(wx.Frame):
 
         self.tip = wx.StaticText(self, -1, u'', pos=(20, 100), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
 
-        self.obj1={'X':[],'YY':[],'OOO':[],'UUUU':[]}
+        self.obj1={'X':[],'YY':[],'OOO':[],'UUUU':[],'@':[]}
         self.obj2={'X':[],'YY':[],'OOO':[],'UUUU':[]}
 
 
@@ -40,8 +40,10 @@ class mainFrame(wx.Frame):
             value2=sheet.cell(row=r, column=5).value
             value3=sheet.cell(row=r, column=6).value
             # print(value1,value2,value3)
-            if value1 is None:
+            if value1 is None and value2 is None:
                 continue
+            if value1 is None :
+                value1=" @= "
             a1=value1.split("=")
             atype=a1[0].split(" ")[1]
             #print(atype,',',a1[1],',',value2,',',value3)
@@ -53,63 +55,46 @@ class mainFrame(wx.Frame):
                 atype='OOO'
             if atype == 'DX':
                 atype='UUUU'
-            obj1={'mc':0,'type':atype, 'value':a1[1], 'row':r}  # mc--匹配度  type--类型  value--字符串 row--所在字符串的行数
+            obj1={'mc':0,'type':atype, 'value':a1[1],'prefix':a1[0], 'row':r}  # mc--匹配度  type--类型  value--字符串 row--所在字符串的行数 @占位
             obj2={'type':value3, 'value':value2, 'row':r}
             self.obj1[atype].append(obj1)
             self.obj2[value3].append(obj2)
+
         print('---------------------------------------------')
-        for key in self.obj1:
+        for key in self.obj2:
             arr1=self.obj1[key]
             arr2=self.obj2[key]
-            for obj1 in arr1:
-                value=obj1['value']
-                nlen=len(value)
-                tarr=[]
-                tarr.append(value)
-                for i in range (0,nlen):
-                    tarr.append(value[i:i+1])
-                    for j in range (2, nlen-1):
-                        if j < nlen:
-                            tarr.append(value[i:j])
-                for i in range (1,nlen):
-                    tarr.append(value[0:i])
 
-                for t in tarr:
-                    for obj2 in arr2:
-                        if obj2['value'].find(t) == 1:
-                            obj1['mc']+=1
-            # 查找完毕，开始排序,默认最大放在最前面
-            arr1.sort(key=lambda obj: obj['mc'], reverse=True)
-            print(arr1[0])
-            if arr1[0]['mc'] > 0:
-                sheet.cell(row=arr1[0]['row'], column=4).value =arr1[0]['value']
+            for obj2 in arr2:
+                for obj1 in arr1:
+                    value = obj1['value'].replace('-', '').replace('315', '').lower()  # 处理-，处理315特殊干扰，处理英文匹配
+                    tarr = self.cut(value)
+                    for t in tarr:
+                        v2=obj2['value'].replace('315', '').lower()
+                        if v2.find(t) != -1:
+                            obj1['mc'] += 1
+                # 查找完毕，开始排序,默认最大放在最前面
+                arr1.sort(key=lambda obj: obj['mc'], reverse=True)
+                #print(arr1[0],arr1[1])
+                if arr1[0]['mc'] > 0:
+                    sheet.cell(row=obj2['row'], column=4).value = arr1[0]['prefix']+'='+arr1[0]['value']
+                for ob in arr1:
+                    ob['mc']=0
 
         wb.save(self.btn_selectFile.GetValue().split(".xls")[0]+'_new.xlsx')
         self.btn_selectFile.Enable()
         self.tip.SetLabel('数据处理完成')
 
-    # 数据处理 核心块
-    def process(self):
-        print(1)
-        for key in self.obj1:
-            arr1=self.obj1[key]
-            arr2=self.obj2[key]
-            for obj1 in arr1:
-                value=obj1['value']
-                nlen=len(value)
-                tarr=[]
-                for i in range (1,nlen):
-                    tarr.append(value[0:i])
-                for t in tarr:
-                    for obj2 in arr2:
-                        if obj2['value'].find(t) == 1:
-                            obj1['mc']+=1
-            # 查找完毕，开始排序,默认最大放在最前面
-            arr1.sort(key=lambda obj: obj['mc'], reverse=True)
-            print(arr1[0])
-        self.btn_selectFile.Enable()
-        self.tip.SetLabel('数据处理完成')
 
+    # 找出字符串所有子串
+    def cut(self,s):
+        results = []
+        # x + 1 表示子字符串长度
+        for x in range(len(s)):
+            # i 表示偏移量
+            for i in range(len(s) - x):
+                results.append(s[i:i + x + 1])
+        return results
 
 
 
