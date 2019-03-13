@@ -21,6 +21,7 @@ class mainFrame(wx.Frame):
         self.obj1={}
         self.obj2={}
         self.obj1['@@@']=[]
+        self.obj2['@@@@']=[]
 
 
     def On_size(self, evt):
@@ -43,7 +44,7 @@ class mainFrame(wx.Frame):
         except:
             self.tip.SetLabel('config.json不是json格式，请检查')
             return
-
+        print(conf)
         for key in conf:
             self.obj1[conf[key]]=[]
             self.obj2[conf[key]]=[]
@@ -60,12 +61,16 @@ class mainFrame(wx.Frame):
             # print(value1,value2,value3)
             if value1 is None and value2 is None:
                 continue
-            if value2 is None:
+            if value1.find('=') == -1 or value1.find(' ') == -1:
                 continue
+            if value2 is None:
+                value2=''
             if value1 is None :
                 value1=" @@@= "
-            if value3 is not None:
-                value3=value3.replace(' ', '')
+            if value3 is None:
+                value3='@@@@'
+
+
             a1=value1.split("=")
             atype=a1[0].split(" ")[1]
             #print(atype,',',a1[1],',',value2,',',value3)
@@ -77,29 +82,38 @@ class mainFrame(wx.Frame):
             #     atype='OOO'
             # if atype == 'DX':
             #     atype='UUUU'
+
             if atype in conf:
                 atype = conf[atype]
+
             obj1={'mc':0,'type':atype, 'value':a1[1],'prefix':a1[0], 'row':r}  # mc--匹配度  type--类型  value--字符串 row--所在字符串的行数 @占位
             obj2={'type':value3, 'value':value2, 'row':r}
             self.obj1[atype].append(obj1)
             self.obj2[value3].append(obj2)
 
+
+
+
         print('---------------------------------------------')
         for key in self.obj2:
-            arr1=self.obj1[key]
+            arr1=self.obj1.get(key)
+            if arr1 is None:
+                continue
             arr2=self.obj2[key]
 
             for obj2 in arr2:
                 for obj1 in arr1:
-                    value = obj1['value'].replace('-', '').replace('315', '').lower()  # 处理-，处理315特殊干扰，处理英文匹配
+                    value = obj1['value'].replace('-', '').replace('－', '').replace('315', '').lower()  # 处理-，处理315特殊干扰，处理英文匹配
                     tarr = self.cut(value)
+                    #print(tarr)
                     for t in tarr:
                         v2=obj2['value'].replace('315', '').lower()
                         if v2.find(t) != -1:
                             obj1['mc'] += 1
                 # 查找完毕，开始排序,默认最大放在最前面
                 arr1.sort(key=lambda obj: obj['mc'], reverse=True)
-                #print(arr1[0],obj2['value'])
+
+
                 if len(arr1)>0 and arr1[0]['mc'] > 0:
                     sheet.cell(row=obj2['row'], column=4).value = arr1[0]['prefix']+'='+arr1[0]['value']
                 for ob in arr1:
