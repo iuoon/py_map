@@ -64,6 +64,8 @@ class mainFrame(wx.Frame):
                 continue
             if value1 is None :
                 value1=" @@@= "
+            if value3 is not None:
+                value3=value3.replace(' ', '')
             a1=value1.split("=")
             atype=a1[0].split(" ")[1]
             #print(atype,',',a1[1],',',value2,',',value3)
