@@ -37,7 +37,12 @@ class mainFrame(wx.Frame):
         if f is None:
             self.tip.SetLabel('配置文件config.json不存在，请放在同级目录')
             return
-        conf = json.load(f)
+        conf={}
+        try:
+           conf = json.load(f)
+        except:
+            self.tip.SetLabel('config.json不是json格式，请检查')
+            return
 
         for key in conf:
             self.obj1[conf[key]]=[]
@@ -54,6 +59,8 @@ class mainFrame(wx.Frame):
             value3=sheet.cell(row=r, column=6).value
             # print(value1,value2,value3)
             if value1 is None and value2 is None:
+                continue
+            if value2 is None:
                 continue
             if value1 is None :
                 value1=" @@@= "
@@ -91,7 +98,7 @@ class mainFrame(wx.Frame):
                 # 查找完毕，开始排序,默认最大放在最前面
                 arr1.sort(key=lambda obj: obj['mc'], reverse=True)
                 #print(arr1[0],obj2['value'])
-                if arr1[0]['mc'] > 0:
+                if len(arr1)>0 and arr1[0]['mc'] > 0:
                     sheet.cell(row=obj2['row'], column=4).value = arr1[0]['prefix']+'='+arr1[0]['value']
                 for ob in arr1:
                     ob['mc']=0
