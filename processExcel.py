@@ -61,14 +61,14 @@ class mainFrame(wx.Frame):
             # print(value1,value2,value3)
             if value1 is None and value2 is None:
                 continue
-            if value1.find('=') == -1 or value1.find(' ') == -1:
-                continue
             if value2 is None:
                 value2=''
             if value1 is None :
                 value1=" @@@= "
             if value3 is None:
                 value3='@@@@'
+            if value1.find('=') == -1 or value1.find(' ') == -1:
+                continue
 
 
             a1=value1.split("=")
