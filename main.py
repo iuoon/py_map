@@ -241,23 +241,26 @@ class mainFrame(wx.Frame):
                 continue
 
             for road in data['trafficinfo']['roads']:
+
                 count = count+1
 
-                rangle = road['angle'] if 'angle' in road else ''
+                rangle = road['angle'] if 'angle' in road else '0'
                 rdirection = road['direction'] if 'direction' in road else ''
                 rlcodes = road['lcodes'] if 'lcodes' in road else ''
                 rname = road['name'] if 'name' in road else ''
                 rpolyline = road['polyline'] if 'polyline' in road else ''
                 rspeed = road['speed'] if 'speed' in road else '0'
-                rstatus = road['status'] if 'status' in road else ''
+                rstatus = road['status'] if 'status' in road else '0'
 
-                sheet1.cell(row=count, column=1).value = rangle
+
+
+                sheet1.cell(row=count, column=1).value = int(rangle)
                 sheet1.cell(row=count, column=2).value = rdirection
                 sheet1.cell(row=count, column=3).value = rlcodes
                 sheet1.cell(row=count, column=4).value = rname
                 sheet1.cell(row=count, column=5).value = rpolyline
-                sheet1.cell(row=count, column=6).value = rspeed
-                sheet1.cell(row=count, column=7).value = rstatus
+                sheet1.cell(row=count, column=6).value = int(rspeed)
+                sheet1.cell(row=count, column=7).value = int(rstatus)
                 sheet1.cell(row=count, column=8).value = dttime
 
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制

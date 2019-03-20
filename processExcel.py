@@ -21,6 +21,7 @@ class mainFrame(wx.Frame):
         self.obj1={}
         self.obj2={}
         self.obj1['@@@']=[]
+        self.obj1['@@@#']=[]
         self.obj2['@@@@']=[]
 
 
@@ -50,6 +51,9 @@ class mainFrame(wx.Frame):
             self.obj2[conf[key]]=[]
 
         print(self.btn_selectFile.GetValue())
+
+        print('若出现key error异常，请将左右类型配全，注意只能一对一，不能一对多、多对多')
+
         wb = load_workbook(self.btn_selectFile.GetValue())
         sheet = wb.active
         rnum=sheet.max_row
@@ -67,12 +71,21 @@ class mainFrame(wx.Frame):
                 value1=" @@@= "
             if value3 is None:
                 value3='@@@@'
-            if value1.find('=') == -1 or value1.find(' ') == -1:
-                continue
+            # if value1.find('=') == -1 or value1.find(' ') == -1:
+            #     continue
 
+            vt1 = ""
+            vt2 = ""
+            atype="@@@#"
+            if value1.find("=") == -1:
+                print("找到没有类型匹配如下：")
+                print(value1)
+            else:
+                a1=value1.split("=")
+                vt1 = a1[0]
+                vt2 = a1[1]
+                atype=a1[0].split(" ")[1]
 
-            a1=value1.split("=")
-            atype=a1[0].split(" ")[1]
             #print(atype,',',a1[1],',',value2,',',value3)
             # if atype == 'A':
             #     atype='X'
@@ -86,7 +99,7 @@ class mainFrame(wx.Frame):
             if atype in conf:
                 atype = conf[atype]
 
-            obj1={'mc':0,'type':atype, 'value':a1[1],'prefix':a1[0], 'row':r}  # mc--匹配度  type--类型  value--字符串 row--所在字符串的行数 @占位
+            obj1={'mc':0,'type':atype, 'value':vt2,'prefix':vt1, 'row':r}  # mc--匹配度  type--类型  value--字符串 row--所在字符串的行数 @占位
             obj2={'type':value3, 'value':value2, 'row':r}
             self.obj1[atype].append(obj1)
             self.obj2[value3].append(obj2)
@@ -103,7 +116,7 @@ class mainFrame(wx.Frame):
 
             for obj2 in arr2:
                 for obj1 in arr1:
-                    value = obj1['value'].replace('-', '').replace('－', '').replace('315', '').lower()  # 处理-，处理315特殊干扰，处理英文匹配
+                    value = obj1['value'].replace('－', '-').replace('315', '').lower()  # 处理-，处理315特殊干扰，处理英文匹配 .replace('-', '').replace('－', '')
                     tarr = self.cut(value)
                     #print(tarr)
                     for t in tarr:
@@ -131,7 +144,10 @@ class mainFrame(wx.Frame):
         for x in range(len(s)):
             # i 表示偏移量
             for i in range(len(s) - x):
-                results.append(s[i:i + x + 1])
+                ret = s[i:i + x + 1]
+                # 长度为2个字及以上
+                if len(ret) > 1:
+                    results.append(ret)
         return results
 
 
