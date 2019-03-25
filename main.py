@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
+from string import digits
 
 import wx
 import requests
@@ -22,7 +23,7 @@ class mainFrame(wx.Frame):
 
         wx.Frame.__init__(self, parent, -1, APP_TITLE)
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.SetSize((520, 300))
+        self.SetSize((600, 390))
         self.Center()
 
         # if hasattr(sys, "frozen") and getattr(sys, "frozen") == "windows_exe":
@@ -34,33 +35,39 @@ class mainFrame(wx.Frame):
 
         wx.StaticText(self, -1, u'设置高德地图Key：', pos=(10, 20), size=(100, -1), style=wx.ALIGN_RIGHT)
         # tip
-        self.tip = wx.StaticText(self, -1, u'高德地图获取交通态势需要创建应用key，请到官网创建web服务key', pos=(20, 230), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
+        self.tip = wx.StaticText(self, -1, u'高德地图获取交通态势需要创建应用key，请到官网创建web服务key', pos=(20, 270), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
+        self.tip2 = wx.StaticText(self, -1, u"矩形坐标全用英文逗号隔开，格式为：左下角经纬度,右上角经纬度 ", pos=(20, 290), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
+        self.tip3 = wx.StaticText(self, -1, u"取经纬度坐标地址：https://lbs.amap.com/console/show/picker", pos=(20, 310), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
+        self.tip3 = wx.StaticText(self, -1, u"若设置了经纬度矩形区域，则开始时按矩形抓取，否则按选择城市抓取", pos=(20, 330), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
         # key
         self.gd_key = wx.TextCtrl(self, -1, '', pos=(130, 20), size=(200, -1), name='GD_KEY', style=wx.TE_LEFT)
 
-        self.area = wx.TextCtrl(self, -1, '', pos=(10, 60), size=(320, 160), name='area', style=wx.TE_LEFT | wx.TE_MULTILINE)
+        self.area = wx.TextCtrl(self, -1, '', pos=(10, 60), size=(320, 200), name='area', style=wx.TE_LEFT | wx.TE_MULTILINE)
 
 
 
         self.btn_start = wx.Button(self, -1, u'开始', pos=(350, 20), size=(100, 25))
         self.btn_pause = wx.Button(self, -1, u'暂停', pos=(350, 50), size=(100, 25))
-        self.btn_close = wx.Button(self, -1, u'关闭窗口', pos=(350, 80), size=(100, 25))
+        #self.btn_close = wx.Button(self, -1, u'关闭窗口', pos=(350, 80), size=(100, 25))
+        wx.StaticText(self, -1, u'设置矩形坐标点：', pos=(350, 80), size=(100, -1), style=wx.ALIGN_LEFT)
+        self.loat = wx.TextCtrl(self, -1, '', pos=(350, 100), size=(200, -1), name='loat', style=wx.TE_LEFT)
 
-        wx.StaticText(self, -1, u'选择省市', pos=(350, 120), size=(50, -1), style=wx.ALIGN_RIGHT)
+
+        wx.StaticText(self, -1, u'选择省市：', pos=(350, 150), size=(50, -1), style=wx.ALIGN_LEFT)
         pros=[]
         for key in city.province_city:
             pros.append(key)
-        self.ch1 = wx.ComboBox(self,-1,value='选择省',choices=pros,pos=(350, 140))
-        self.ch2 = wx.ComboBox(self,-1,value='选择市',choices=[],pos=(350, 170))
+        self.ch1 = wx.ComboBox(self,-1,value='选择省',choices=pros,pos=(350, 170))
+        self.ch2 = wx.ComboBox(self,-1,value='选择市',choices=[],pos=(350, 200))
         self.city = '-1'  # 当前城市
         self.preCity = '-1'  # 上一次城市
-        self.cityTip = wx.StaticText(self, -1, u'当前城市：未选择', pos=(350, 200), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
+        self.cityTip = wx.StaticText(self, -1, u'当前城市：未选择', pos=(350, 230), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
 
         # 控件事件
         #self.gd_key.Bind(wx.EVT_TEXT, self.EvtText)
 
         # 鼠标事件
-        self.Bind(wx.EVT_BUTTON, self.OnClose, self.btn_close)
+        #self.Bind(wx.EVT_BUTTON, self.OnClose, self.btn_close)
         self.btn_start.Bind(wx.EVT_LEFT_DOWN, self.OnStartDown)
         self.Bind(wx.EVT_BUTTON, self.OnPauseDown, self.btn_pause)
         self.Bind(wx.EVT_COMBOBOX, self.OnProvinceChoice, self.ch1)
@@ -111,9 +118,10 @@ class mainFrame(wx.Frame):
 
 
     def OnStartDown(self, evt):
-        if self.city == '' or self.city == '-1':
-            self.area.AppendText('[warn]请选择城市！！！\n')
+        if self.loat.GetValue() =='' and (self.city == '' or self.city == '-1'):
+            self.area.AppendText('[warn]请设置经纬度矩形区域，或选择城市！！！\n')
             return
+        self.loat.Disable()
         self.gd_key.Disable()
         self.btn_start.Disable()
         self.btn_pause.Enable()
@@ -140,6 +148,7 @@ class mainFrame(wx.Frame):
             self.t1.start()
 
     def OnPauseDown(self, evt):
+        self.loat.Enable()
         self.gd_key.Enable()
         self.btn_start.Enable()
         self.btn_pause.Disable()
@@ -185,11 +194,19 @@ class mainFrame(wx.Frame):
         self.area.AppendText('[info]使用key'+key)
         self.area.AppendText('[info]开始爬取数据...\n')
         startTime = time.time()
-        print(city.city_pos[self.city])
-        locs = self.LocaDiv2(city.city_pos[self.city])
+
+        lotc=''
+        if self.loat.GetValue() !='':
+            lotc = self.loat.GetValue()
+        else:
+            lotc = city.city_pos[self.city]
+        print(lotc)
+        locs = self.LocaDiv2(lotc)
         date = time.strftime("%Y%m%d-%H")
 
         dirs = os.path.abspath('.')+'\\'+self.city + '\\' + time.strftime("%Y%m%d")
+        if self.loat.GetValue() !='':
+            dirs = os.path.abspath('.')+'\\'+self.loat.GetValue() + '\\' + time.strftime("%Y%m%d")
         # 创建文件夹
         if not os.path.exists(dirs):
             os.makedirs(dirs)
@@ -202,7 +219,7 @@ class mainFrame(wx.Frame):
         count = 1
         self.workbook = Workbook()
         sheet1 = self.workbook.create_sheet(self.city,0)
-        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'datetime']
+        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime']
         for i in range(0, len(keys1)):
             sheet1.cell(row=1, column=i+1).value = keys1[i]  # 写入表头
 
@@ -240,8 +257,13 @@ class mainFrame(wx.Frame):
                 self.area.AppendText('[warn]'+str(data)+'\n')
                 continue
 
-            for road in data['trafficinfo']['roads']:
+            print(data)
 
+            description = data['trafficinfo']['description'] if 'description' in data['trafficinfo'] else ''
+            evaluation = data['trafficinfo']['evaluation'] if 'evaluation' in data['trafficinfo'] else ''
+            evaluation = str(evaluation)
+
+            for road in data['trafficinfo']['roads']:
                 count = count+1
 
                 rangle = road['angle'] if 'angle' in road else '0'
@@ -252,8 +274,6 @@ class mainFrame(wx.Frame):
                 rspeed = road['speed'] if 'speed' in road else '0'
                 rstatus = road['status'] if 'status' in road else '0'
 
-
-
                 sheet1.cell(row=count, column=1).value = int(rangle)
                 sheet1.cell(row=count, column=2).value = rdirection
                 sheet1.cell(row=count, column=3).value = rlcodes
@@ -261,7 +281,23 @@ class mainFrame(wx.Frame):
                 sheet1.cell(row=count, column=5).value = rpolyline
                 sheet1.cell(row=count, column=6).value = int(rspeed)
                 sheet1.cell(row=count, column=7).value = int(rstatus)
-                sheet1.cell(row=count, column=8).value = dttime
+                sheet1.cell(row=count, column=8).value = description
+                sheet1.cell(row=count, column=9).value = evaluation
+                sheet1.cell(row=count, column=10).value = dttime
+
+                # remove_digits = str.maketrans('', '', digits)
+                # res = ss.translate(remove_digits).replace('.,.', '1').replace(';', ',')
+
+                # param0={
+                #     'key': str(key),
+                #     'extensions': 'all',
+                #     'carid': 'ts001',
+                #     'locations': rpolyline.replace(';', '|'),
+                #     'direction': res,
+                #     'speed': res,
+                #     'time': ''
+                # }
+                # requests.get('https://restapi.amap.com/v3/autograsp?', params=param0, timeout=30)
 
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
         self.workbook.save(self.file1)
