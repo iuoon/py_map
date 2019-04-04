@@ -13,7 +13,7 @@ import city
 from openpyxl import Workbook,load_workbook
 
 
-APP_TITLE = u'爬取数据-爬限速测试版'
+APP_TITLE = u'爬取数据-爬限速正式版'
 APP_ICON = 'res/python.ico'
 
 class mainFrame(wx.Frame):
@@ -36,7 +36,7 @@ class mainFrame(wx.Frame):
 
         wx.StaticText(self, -1, u'设置高德地图Key：', pos=(10, 20), size=(100, -1), style=wx.ALIGN_RIGHT)
         # tip
-        self.tip = wx.StaticText(self, -1, u'高德地图获取交通态势需要创建应用key，请到官网创建web服务key', pos=(20, 340), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
+        self.tip = wx.StaticText(self, -1, u'爬限速每天爬一次，点开始会立即执行爬一次，注意操作，以免封禁', pos=(20, 340), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
         self.tip2 = wx.StaticText(self, -1, u"矩形坐标全用英文逗号隔开，格式为：左下角经纬度,右上角经纬度 ", pos=(20, 360), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
         self.tip3 = wx.StaticText(self, -1, u"取经纬度坐标地址：https://lbs.amap.com/console/show/picker", pos=(20, 380), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
         self.tip3 = wx.StaticText(self, -1, u"若设置了经纬度矩形区域，则开始时按矩形抓取，否则按选择城市抓取", pos=(20, 400), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
@@ -133,15 +133,18 @@ class mainFrame(wx.Frame):
         if self.loat.GetValue() =='' and (self.city == '' or self.city == '-1'):
             self.area.AppendText('[warn]请设置经纬度矩形区域，或选择城市！！！\n')
             return
+        key = self.gd_key.GetValue()
+        if key == '':
+            key = '0b1804994cd63974f873a29a269d65e7'
+            self.area.AppendText('[warn]请填写高德web服务key！！！\n')
+            return
         self.loat.Disable()
         self.gd_key.Disable()
         self.btn_start.Disable()
         self.btn_pause.Enable()
         self.ch1.Disable()
         self.ch2.Disable()
-        key = self.gd_key.GetValue()
-        if key == '':
-            key = '0b1804994cd63974f873a29a269d65e7'
+
         if self.ispause:
             if self.preCity == '-1':
                 self.preCity = self.city
@@ -298,30 +301,6 @@ class mainFrame(wx.Frame):
                 sheet1.cell(row=count, column=9).value = evaluation
                 sheet1.cell(row=count, column=10).value = dttime
 
-                remove_digits = str.maketrans('', '', digits)
-                s2 = rpolyline.translate(remove_digits).replace('.,.', '1').replace(';', ',')
-
-                print('11polyline=======>', rpolyline)
-                print('22speed=======>', s2)
-                arr = s2.split(",")
-                s3 = ""
-                t = time.time()
-                for i in range(0,len(arr)):
-                    tt=int(t)+i
-                    s3 = s3+str(tt)+','
-                s3 = s3[:len(s3)-1]
-                print ('33time=======>', s3)
-                # param0={
-                #     'key': str(key),
-                #     'extensions': 'all',
-                #     'carid': 'ts001',
-                #     'locations': rpolyline.replace(';', '|'),
-                #     'direction': res,
-                #     'speed': res,
-                #     'time': ''
-                # }
-                # requests.get('https://restapi.amap.com/v3/autograsp?', params=param0, timeout=30)
-
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
         self.workbook.save(self.file1)
         endTime = time.time()
@@ -350,11 +329,14 @@ class mainFrame(wx.Frame):
 
     scheduler2 = BlockingScheduler()
     def StartReptileRoad(self, evt):
-        self.btn_start2.Disable()
-        self.btn_cancel2.Enable()
         key = self.gd_key.GetValue()
         if key == '':
-            key = '0b1804994cd63974f873a29a269d65e7'
+            key = '0b1804994cd63974f873a29a269d65e7_1'
+            self.area.AppendText('[warn]请填写高德web服务key！！！\n')
+            return
+        self.btn_start2.Disable()
+        self.btn_cancel2.Enable()
+
         self.reptileRoad(key)
         if self.ispause2:
             self.ispause2=False
@@ -365,8 +347,8 @@ class mainFrame(wx.Frame):
             self.t2.start()
 
     def startWork2(self,key):
-        # 定时每天 00:00:30秒执行任务
-        trigger2 = CronTrigger(day_of_week='0-6', hour = 0,minute = 0,second = 30 )
+        # 定时每天 01:00:30秒执行任务
+        trigger2 = CronTrigger(day_of_week='0-6', hour = 1,minute = 0,second = 30 )
         self.scheduler2.add_job(self.reptileRoad, trigger2, args=(key,))
         self.scheduler2.start()
 
@@ -385,10 +367,13 @@ class mainFrame(wx.Frame):
            if root.endswith(dir) and len(files)>0:
                filePath = root+"\\"+files[0]
                print('file:', filePath)
+               self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
                wb = load_workbook(filePath)
                sheet = wb.active
                rnum=sheet.max_row
                cnum=sheet.max_column
+               sheet.cell(row=1, column=11).value = 'roadlevel'
+               sheet.cell(row=1, column=12).value = 'maxspeed'
                for r in range(2, rnum):
                    polyline =sheet.cell(row=r, column=5).value
                    s1 = polyline.replace(';', '|') # 点参数
@@ -432,13 +417,14 @@ class mainFrame(wx.Frame):
                            if maxspeed is None or maxspeed =='' or maxspeed == "-1":
                                continue
                            else:
-                               sheet.cell(row=r, column=11).value = roadlevel
-                               sheet.cell(row=r, column=12).value = maxspeed
+                               sheet.cell(row=r, column=11).value = int(roadlevel)
+                               sheet.cell(row=r, column=12).value = int(maxspeed)
                                break
-                   if r>10:
-                       break
+                   # if r>10:
+                   #     break
                wb.save(filePath)
                print(filePath, "爬取道路限速和道路等级成功")
+               self.area.AppendText('[info]爬取道路限速成功，数据存储路径：'+filePath +'\n')
 
 
 class mainApp(wx.App):
