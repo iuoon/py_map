@@ -10,7 +10,8 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 import threading
 import city
-from openpyxl import Workbook,load_workbook
+import csv
+import pandas as pd
 
 
 APP_TITLE = u'爬取数据-爬限速正式版'
@@ -110,7 +111,7 @@ class mainFrame(wx.Frame):
         self.Refresh()
         evt.Skip()
 
-    workbook = Workbook()
+
     file1 =''
     iswriting=False   # 是否正在开始写xls
     ispause = False   # 是否暂停
@@ -123,7 +124,8 @@ class mainFrame(wx.Frame):
         dlg = wx.MessageDialog(None, u'确定要关闭本窗口？', u'操作提示', wx.YES_NO | wx.ICON_QUESTION)
         if(dlg.ShowModal() == wx.ID_YES):
             if self.iswriting:
-                self.workbook.save(self.file1)
+                #self.workbook.save(self.file1)
+                print(1)
             if self.isrunsched:
                 self.scheduler.shutdown()
             self.Destroy()
@@ -210,6 +212,7 @@ class mainFrame(wx.Frame):
         self.area.AppendText('[info]开始爬取数据...\n')
         startTime = time.time()
 
+        # 如果设置了矩形坐标就按照矩形坐标爬取
         lotc=''
         if self.loat.GetValue() !='':
             lotc = self.loat.GetValue()
@@ -219,30 +222,30 @@ class mainFrame(wx.Frame):
         locs = self.LocaDiv2(lotc)
         date = time.strftime("%Y%m%d-%H")
 
-        dirs = os.path.abspath('.')+'\\'+self.city + '\\' + time.strftime("%Y%m%d")
+        dirs = os.path.abspath('.')+'\\'+self.city
         if self.loat.GetValue() !='':
-            dirs = os.path.abspath('.')+'\\'+self.loat.GetValue() + '\\' + time.strftime("%Y%m%d")
+            dirs = os.path.abspath('.')+'\\'+self.loat.GetValue()
         # 创建文件夹
         if not os.path.exists(dirs):
             os.makedirs(dirs)
         # 删除旧文件
-        self.file1 = dirs+'\\'+  date +'.xlsx'
+        self.file1 = dirs+'\\'+  date +'.csv'
         if os.path.exists(self.file1):
             os.remove(self.file1)
 
         dttime = time.strftime("%Y-%m-%d %H:%M:%S")
         count = 1
-        self.workbook = Workbook()
-        sheet1 = self.workbook.create_sheet(self.city,0)
-        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime']
-        for i in range(0, len(keys1)):
-            sheet1.cell(row=1, column=i+1).value = keys1[i]  # 写入表头
+        csv_file=open(self.file1, 'w', newline='', encoding='utf-8')
+        csv_writer = csv.writer(csv_file)
+
+        #self.workbook = Workbook()
+        #sheet1 = self.workbook.create_sheet(self.city,0)
+        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
+        csv_writer.writerow(keys1)
+        #for i in range(0, len(keys1)):
+        #    sheet1.cell(row=1, column=i+1).value = keys1[i]  # 写入表头
 
         self.iswriting =True
-        # if self.isreptiling != True:
-        #     self.workbook.save(self.file1)
-        #     return
-
         self.isreptiling = True
 
         for loc in locs:
@@ -290,19 +293,31 @@ class mainFrame(wx.Frame):
                 rspeed = road['speed'] if 'speed' in road else '0'
                 rstatus = road['status'] if 'status' in road else '0'
 
-                sheet1.cell(row=count, column=1).value = int(rangle)
-                sheet1.cell(row=count, column=2).value = rdirection
-                sheet1.cell(row=count, column=3).value = rlcodes
-                sheet1.cell(row=count, column=4).value = rname
-                sheet1.cell(row=count, column=5).value = rpolyline
-                sheet1.cell(row=count, column=6).value = int(rspeed)
-                sheet1.cell(row=count, column=7).value = int(rstatus)
-                sheet1.cell(row=count, column=8).value = description
-                sheet1.cell(row=count, column=9).value = evaluation
-                sheet1.cell(row=count, column=10).value = dttime
+                #sheet1.cell(row=count, column=1).value = int(rangle)
+                #sheet1.cell(row=count, column=2).value = rdirection
+                #sheet1.cell(row=count, column=3).value = rlcodes
+                #sheet1.cell(row=count, column=4).value = rname
+                #sheet1.cell(row=count, column=5).value = rpolyline
+                #sheet1.cell(row=count, column=6).value = int(rspeed)
+                #sheet1.cell(row=count, column=7).value = int(rstatus)
+                #sheet1.cell(row=count, column=8).value = description
+                #sheet1.cell(row=count, column=9).value = evaluation
+                #sheet1.cell(row=count, column=10).value = dttime
+
+                rdArr=[]
+                rdArr.append(int(rangle))
+                rdArr.append(rdirection)
+                rdArr.append(rlcodes)
+                rdArr.append(rname)
+                rdArr.append(rpolyline)
+                rdArr.append(int(rspeed))
+                rdArr.append(int(rstatus))
+                rdArr.append(description)
+                rdArr.append(evaluation)
+                rdArr.append(dttime)
+                csv_writer.writerow(rdArr)
 
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
-        self.workbook.save(self.file1)
         endTime = time.time()
         print('[info]数据爬取完毕，用时%.2f秒' % (endTime-startTime))
         print('[info]数据存储路径：'+self.file1)
@@ -331,7 +346,7 @@ class mainFrame(wx.Frame):
     def StartReptileRoad(self, evt):
         key = self.gd_key.GetValue()
         if key == '':
-            key = '0b1804994cd63974f873a29a269d65e7_1'
+            key = '0b1804994cd63974f873a29a269d65e7'
             self.area.AppendText('[warn]请填写高德web服务key！！！\n')
             return
         self.btn_start2.Disable()
@@ -364,18 +379,21 @@ class mainFrame(wx.Frame):
         # 获取道路文件路径
         for root, dirs, files in os.walk(os.path.abspath('.')):
            dir=time.strftime("%Y%m%d")
-           if root.endswith(dir) and len(files)>0:
+           if len(files)>0 and files[0].endswith('.csv'):
                filePath = root+"\\"+files[0]
                print('file:', filePath)
                self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
-               wb = load_workbook(filePath)
-               sheet = wb.active
-               rnum=sheet.max_row
-               cnum=sheet.max_column
-               sheet.cell(row=1, column=11).value = 'roadlevel'
-               sheet.cell(row=1, column=12).value = 'maxspeed'
-               for r in range(2, rnum):
-                   polyline =sheet.cell(row=r, column=5).value
+               datacsv = pd.read_csv(filePath,encoding='utf-8',)
+               #sheet = wb.active
+               #rnum=sheet.max_row
+               #cnum=sheet.max_column
+               #sheet.cell(row=1, column=11).value = 'roadlevel'
+               #sheet.cell(row=1, column=12).value = 'maxspeed'
+               #for r in range(2, rnum):
+               print(len(datacsv))
+               for r in range(1, len(datacsv)):
+                   polyline =datacsv.iat[r,4]
+                   print(polyline)
                    s1 = polyline.replace(';', '|') # 点参数
                    remove_digits = str.maketrans('', '', digits)
                    s2 = polyline.translate(remove_digits).replace('.,.', '1').replace(';', ',')
@@ -417,12 +435,12 @@ class mainFrame(wx.Frame):
                            if maxspeed is None or maxspeed =='' or maxspeed == "-1":
                                continue
                            else:
-                               sheet.cell(row=r, column=11).value = int(roadlevel)
-                               sheet.cell(row=r, column=12).value = int(maxspeed)
-                               break
-                   # if r>10:
-                   #     break
-               wb.save(filePath)
+                              datacsv.iat[r,10]=int(roadlevel)
+                              datacsv.iat[r,11]=int(maxspeed)
+                              break
+                   #if r>10:
+                   #    break
+               datacsv.to_csv(filePath,index=False, encoding='utf-8')
                print(filePath, "爬取道路限速和道路等级成功")
                self.area.AppendText('[info]爬取道路限速成功，数据存储路径：'+filePath +'\n')
 
