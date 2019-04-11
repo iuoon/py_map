@@ -212,7 +212,7 @@ class mainFrame(wx.Frame):
            self.cityAlias = '全国'
            for ctname in city.qg_pos:
                self.city=ctname
-               #self.reptileMap(key)
+               self.reptileMap(key)
 
     def reptileMap(self, key):
         print('key='+key)
