@@ -218,7 +218,7 @@ class mainFrame(wx.Frame):
         print('key='+key)
         print('[info]开始爬取数据:'+self.city)
         self.area.Clear()
-        self.area.AppendText('[info]使用key:'+key)
+        self.area.AppendText('[info]使用key:'+key+'\n')
         self.area.AppendText('[info]开始爬取数据：'+self.city+'\n')
         startTime = time.time()
 
@@ -247,20 +247,18 @@ class mainFrame(wx.Frame):
             os.makedirs(dirs)
         # 删除旧文件
         self.file1 = dirs+'\\'+  date +'.csv'
+        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
+        csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')
+        csv_writer = csv.writer(csv_file)
         if os.path.exists(self.file1):
-            os.remove(self.file1)
+           print(1)
+        else:
+           csv_writer.writerow(keys1)
 
         dttime = time.strftime("%Y-%m-%d %H:%M:%S")
         count = 1
-        csv_file=open(self.file1, 'a', newline='', encoding='utf-8')
-        csv_writer = csv.writer(csv_file)
 
-        #self.workbook = Workbook()
-        #sheet1 = self.workbook.create_sheet(self.city,0)
-        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
-        csv_writer.writerow(keys1)
-        #for i in range(0, len(keys1)):
-        #    sheet1.cell(row=1, column=i+1).value = keys1[i]  # 写入表头
+        self.area.AppendText('[info]开始写入：'+self.file1+'\n')
 
         self.iswriting =True
         self.isreptiling = True
@@ -324,7 +322,7 @@ class mainFrame(wx.Frame):
                 rdArr=[]
                 rdArr.append(int(rangle))
                 rdArr.append(rdirection)
-                rdArr.append(str(rlcodes))
+                rdArr.append(str(rlcodes)+"\t")
                 rdArr.append(rname)
                 rdArr.append(rpolyline)
                 rdArr.append(int(rspeed))
@@ -333,9 +331,9 @@ class mainFrame(wx.Frame):
                 rdArr.append(evaluation)
                 rdArr.append(dttime)
                 csv_writer.writerow(rdArr)
+                csv_file.flush()
 
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
-        csv_file.flush()
         csv_file.close()
         endTime = time.time()
         print('[info]数据爬取完毕，用时%.2f秒' % (endTime-startTime))
