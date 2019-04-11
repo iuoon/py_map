@@ -64,6 +64,7 @@ class mainFrame(wx.Frame):
         self.ch2 = wx.ComboBox(self,-1,value='选择市',choices=[],pos=(350, 200))
         self.city = '-1'  # 当前城市
         self.preCity = '-1'  # 上一次城市
+        self.cityAlias ='-1' #
         self.cityTip = wx.StaticText(self, -1, u'当前城市：未选择', pos=(350, 230), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
 
         self.btn_start2 = wx.Button(self, -1, u'开始爬取限速', pos=(20, 280), size=(100, 25))
@@ -206,11 +207,12 @@ class mainFrame(wx.Frame):
         return list
 
     def preReptileMap(self, key):
-        print(1)
+        print('开始爬取')
         if self.city == '全国':
+           self.cityAlias = '全国'
            for ctname in city.qg_pos:
                self.city=ctname
-               self.reptileMap(key)
+               #self.reptileMap(key)
 
     def reptileMap(self, key):
         print('key='+key)
@@ -230,9 +232,16 @@ class mainFrame(wx.Frame):
         locs = self.LocaDiv2(lotc)
         date = time.strftime("%Y%m%d-%H")
 
-        dirs = os.path.abspath('.')+'\\'+self.city
-        if self.loat.GetValue() !='':
-            dirs = os.path.abspath('.')+'\\'+self.loat.GetValue()
+        dirs =''
+        if self.cityAlias=='全国':
+            dirs = os.path.abspath('.')+'\\'+self.cityAlias
+            if self.loat.GetValue() !='':
+               dirs = os.path.abspath('.')+'\\'+self.loat.GetValue()
+        else:
+            dirs = os.path.abspath('.')+'\\'+self.city
+            if self.loat.GetValue() !='':
+                dirs = os.path.abspath('.')+'\\'+self.loat.GetValue()
+
         # 创建文件夹
         if not os.path.exists(dirs):
             os.makedirs(dirs)
@@ -243,7 +252,7 @@ class mainFrame(wx.Frame):
 
         dttime = time.strftime("%Y-%m-%d %H:%M:%S")
         count = 1
-        csv_file=open(self.file1, 'w', newline='', encoding='utf-8')
+        csv_file=open(self.file1, 'a', newline='', encoding='utf-8')
         csv_writer = csv.writer(csv_file)
 
         #self.workbook = Workbook()
@@ -315,7 +324,7 @@ class mainFrame(wx.Frame):
                 rdArr=[]
                 rdArr.append(int(rangle))
                 rdArr.append(rdirection)
-                rdArr.append(rlcodes)
+                rdArr.append(str(rlcodes))
                 rdArr.append(rname)
                 rdArr.append(rpolyline)
                 rdArr.append(int(rspeed))
@@ -326,6 +335,7 @@ class mainFrame(wx.Frame):
                 csv_writer.writerow(rdArr)
 
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
+        csv_file.close()
         endTime = time.time()
         print('[info]数据爬取完毕，用时%.2f秒' % (endTime-startTime))
         print('[info]数据存储路径：'+self.file1)
