@@ -153,7 +153,8 @@ class mainFrame(wx.Frame):
             if self.preCity != self.city:
                 # 暂停后又开始时切换了城市，原来已爬取的城市立即保存，开始爬取新城市
                 if self.iswriting:
-                    self.workbook.save(self.file1)
+                    #self.workbook.save(self.file1)
+                    print('爬取中切换了城市')
 
             self.area.AppendText('[info]恢复爬取\n')
             self.ispause=False
@@ -204,12 +205,19 @@ class mainFrame(wx.Frame):
                 list.append(pos)
         return list
 
+    def preReptileMap(self, key):
+        print(1)
+        if self.city == '全国':
+           for ctname in city.qg_pos:
+               self.city=ctname
+               self.reptileMap(key)
+
     def reptileMap(self, key):
         print('key='+key)
         print('[info]开始爬取数据:'+self.city)
         self.area.Clear()
-        self.area.AppendText('[info]使用key'+key)
-        self.area.AppendText('[info]开始爬取数据...\n')
+        self.area.AppendText('[info]使用key:'+key)
+        self.area.AppendText('[info]开始爬取数据：'+self.city+'\n')
         startTime = time.time()
 
         # 如果设置了矩形坐标就按照矩形坐标爬取
@@ -256,8 +264,8 @@ class mainFrame(wx.Frame):
                 'extensions': 'all'
                 # 'output': 'JSON'
             }
-            print('[info]探测区块：'+loc)
-            self.area.AppendText('[info]探测区块：'+loc+'\n')
+            print('[info]探测['+self.city+']区块：'+loc)
+            self.area.AppendText('[info]探测['+self.city+']区块：'+loc+'\n')
             obj = '{}'
             while True:
                 try:
@@ -329,11 +337,11 @@ class mainFrame(wx.Frame):
     scheduler = BlockingScheduler()
     def startWork(self, key):
         # 开始首次爬取，首次爬取过程中不会暂停，其他时候可以暂停
-        self.reptileMap(key)
+        self.preReptileMap(key)
         self.isrunsched = True
         # 周一到周日,每小时执行一次   每5秒second='*/5' hour='0-23'
         trigger = CronTrigger(day_of_week='0-6', hour='0-23')
-        self.scheduler.add_job(self.reptileMap, trigger, args=(key,))
+        self.scheduler.add_job(self.preReptileMap, trigger, args=(key,))
         self.scheduler.start()
 
     def pauseWork(self):
