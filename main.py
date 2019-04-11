@@ -335,6 +335,7 @@ class mainFrame(wx.Frame):
                 csv_writer.writerow(rdArr)
 
             time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
+        csv_file.flush()
         csv_file.close()
         endTime = time.time()
         print('[info]数据爬取完毕，用时%.2f秒' % (endTime-startTime))
