@@ -253,7 +253,7 @@ class mainFrame(wx.Frame):
         self.file1 = dirs+'\\'+  date +'.csv'
         keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
         #csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')  # 按utf-8编码写入
-        csv_file=open(self.file1, 'a+', newline='',)                    # 按默认编码写入
+        csv_file=open(self.file1, 'a+', newline='',encoding='ansi',)                    # 按默认编码写入
         csv_writer = csv.writer(csv_file)
         if fileExist == False:
            csv_writer.writerow(keys1)
@@ -314,15 +314,15 @@ class mainFrame(wx.Frame):
 
                 rdArr=[]
                 rdArr.append(int(rangle))
-                rdArr.append(rdirection)
+                rdArr.append(str(rdirection)+"\t")
                 rdArr.append(str(rlcodes)+"\t")
-                rdArr.append(rname)
-                rdArr.append(rpolyline)
+                rdArr.append(str(rname)+"\t")
+                rdArr.append(str(rpolyline)+"\t")
                 rdArr.append(int(rspeed))
                 rdArr.append(int(rstatus))
-                rdArr.append(description)
-                rdArr.append(evaluation)
-                rdArr.append(dttime)
+                rdArr.append(str(description)+"\t")
+                rdArr.append(str(evaluation)+"\t")
+                rdArr.append(str(dttime)+"\t")
                 csv_writer.writerow(rdArr)
                 csv_file.flush()
 
@@ -393,7 +393,7 @@ class mainFrame(wx.Frame):
                print('file:', filePath)
                self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
                # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
-               datacsv = pd.read_csv(filePath,)   # 按默认编码读取
+               datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
                print(len(datacsv))
                for r in range(1, len(datacsv)):
                    polyline =datacsv.iat[r,4]
@@ -426,11 +426,11 @@ class mainFrame(wx.Frame):
                            print('[ERROR]ConnectionError2 -- will retry connect')
                            self.area.AppendText('[ERROR]ConnectionError2 -- will retry connect\n')
                            time.sleep(1)
-
+                   self.area.AppendText('[info]正在爬取（'+str(datacsv.iat[r,3]).replace("\t","") +'）道路限速，请勿关闭程序\n')
                    data = obj.json()
                    if data['status'] == '0':
                        print('[info]'+str(data))
-                       print('[warn]请求参数错误',str(param))
+                       print('[warn]请求参数错误')
                        continue
                    if data['status'] == '1':
                        for road in data['roads']:
@@ -441,10 +441,13 @@ class mainFrame(wx.Frame):
                            else:
                               datacsv.iat[r,10]=int(roadlevel)
                               datacsv.iat[r,11]=int(maxspeed)
+                              datacsv.to_csv(filePath,index=False, encoding='ansi',)
                               break
                    #if r>10:
                    #    break
-               datacsv.to_csv(filePath,index=False, encoding='utf-8')
+               # datacsv.to_csv(filePath,index=False, encoding='utf-8')
+               datacsv.to_csv(filePath,index=False, encoding='ansi',)
+
                print(filePath, "爬取道路限速和道路等级成功")
                self.area.AppendText('[info]爬取道路限速成功，数据存储路径：'+filePath +'\n')
 
