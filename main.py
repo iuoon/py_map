@@ -254,7 +254,7 @@ class mainFrame(wx.Frame):
         keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
         #csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')  # 按utf-8编码写入
         csv_file=open(self.file1, 'a+', newline='',encoding='ansi',)                    # 按默认编码写入
-        csv_writer = csv.writer(csv_file)
+        csv_writer = csv.writer(csv_file,dialect='excel')
         if fileExist == False:
            csv_writer.writerow(keys1)
 
