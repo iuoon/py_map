@@ -125,7 +125,6 @@ class mainFrame(wx.Frame):
         dlg = wx.MessageDialog(None, u'确定要关闭本窗口？', u'操作提示', wx.YES_NO | wx.ICON_QUESTION)
         if(dlg.ShowModal() == wx.ID_YES):
             if self.iswriting:
-                #self.workbook.save(self.file1)
                 print(1)
             if self.isrunsched:
                 self.scheduler.shutdown()
@@ -138,7 +137,6 @@ class mainFrame(wx.Frame):
             return
         key = self.gd_key.GetValue()
         if key == '':
-            key = '0b1804994cd63974f873a29a269d65e7'
             self.area.AppendText('[warn]请填写高德web服务key！！！\n')
             return
         self.loat.Disable()
@@ -186,6 +184,7 @@ class mainFrame(wx.Frame):
         self.city = evt.GetString()
         print(self.city)
         self.cityTip.SetLabelText('当前城市：'+self.city)
+        self.cityAlias=self.city
 
 
     def LocaDiv2(self, ploy):
@@ -208,11 +207,13 @@ class mainFrame(wx.Frame):
 
     def preReptileMap(self, key):
         print('开始爬取')
-        if self.city == '全国':
-           self.cityAlias = '全国'
+        if self.cityAlias == '全国':
            for ctname in city.qg_pos:
                self.city=ctname
                self.reptileMap(key)
+        else:
+            self.cityAlias = self.city
+            self.reptileMap(key)
 
     def reptileMap(self, key):
         print('key='+key)
@@ -230,7 +231,8 @@ class mainFrame(wx.Frame):
             lotc = city.city_pos[self.city]
         print(lotc)
         locs = self.LocaDiv2(lotc)
-        date = time.strftime("%Y%m%d-%H")
+        # date = time.strftime("%Y%m%d-%H") # 每小时生成一次
+        date = time.strftime("%Y%m%d")   # 每天一次
 
         dirs =''
         if self.cityAlias=='全国':
@@ -245,20 +247,22 @@ class mainFrame(wx.Frame):
         # 创建文件夹
         if not os.path.exists(dirs):
             os.makedirs(dirs)
-        # 删除旧文件
+        fileExist=False
+        if os.path.exists(self.file1):
+            fileExist=True
         self.file1 = dirs+'\\'+  date +'.csv'
         keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
-        csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')
+        #csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')  # 按utf-8编码写入
+        csv_file=open(self.file1, 'a+', newline='',)                    # 按默认编码写入
         csv_writer = csv.writer(csv_file)
-        if os.path.exists(self.file1):
-           print(1)
-        else:
+        if fileExist == False:
            csv_writer.writerow(keys1)
 
         dttime = time.strftime("%Y-%m-%d %H:%M:%S")
         count = 1
 
         self.area.AppendText('[info]开始写入：'+self.file1+'\n')
+
 
         self.iswriting =True
         self.isreptiling = True
@@ -308,17 +312,6 @@ class mainFrame(wx.Frame):
                 rspeed = road['speed'] if 'speed' in road else '0'
                 rstatus = road['status'] if 'status' in road else '0'
 
-                #sheet1.cell(row=count, column=1).value = int(rangle)
-                #sheet1.cell(row=count, column=2).value = rdirection
-                #sheet1.cell(row=count, column=3).value = rlcodes
-                #sheet1.cell(row=count, column=4).value = rname
-                #sheet1.cell(row=count, column=5).value = rpolyline
-                #sheet1.cell(row=count, column=6).value = int(rspeed)
-                #sheet1.cell(row=count, column=7).value = int(rstatus)
-                #sheet1.cell(row=count, column=8).value = description
-                #sheet1.cell(row=count, column=9).value = evaluation
-                #sheet1.cell(row=count, column=10).value = dttime
-
                 rdArr=[]
                 rdArr.append(int(rangle))
                 rdArr.append(rdirection)
@@ -363,7 +356,6 @@ class mainFrame(wx.Frame):
     def StartReptileRoad(self, evt):
         key = self.gd_key.GetValue()
         if key == '':
-            key = '0b1804994cd63974f873a29a269d65e7'
             self.area.AppendText('[warn]请填写高德web服务key！！！\n')
             return
         self.btn_start2.Disable()
@@ -400,13 +392,8 @@ class mainFrame(wx.Frame):
                filePath = root+"\\"+files[0]
                print('file:', filePath)
                self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
-               datacsv = pd.read_csv(filePath,encoding='utf-8',)
-               #sheet = wb.active
-               #rnum=sheet.max_row
-               #cnum=sheet.max_column
-               #sheet.cell(row=1, column=11).value = 'roadlevel'
-               #sheet.cell(row=1, column=12).value = 'maxspeed'
-               #for r in range(2, rnum):
+               # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
+               datacsv = pd.read_csv(filePath,)   # 按默认编码读取
                print(len(datacsv))
                for r in range(1, len(datacsv)):
                    polyline =datacsv.iat[r,4]
