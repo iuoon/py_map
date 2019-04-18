@@ -21,7 +21,15 @@ if __name__ == "__main__":
             "cardNo":arr[1],
             "entityName":"Administrator"
         }
-        ret = requests.post('http://222.82.237.75:8888/E-office/sit/getEmployeeByIdCard', data = paramData, timeout=30, headers=header)
+        ret='{"status":False}'
+        while True:
+            try:
+                ret = requests.post('http://222.82.237.75:8888/E-office/sit/getEmployeeByIdCard', data = paramData, timeout=30, headers=header)
+                print(ret.text)
+                break
+            except requests.exceptions.ConnectionError:
+                print('[ERROR]ConnectionError -- will retry connect')
+                time.sleep(3)
         data = ret.json()
         if data['status']:
             print(data['data'][0][5])
@@ -38,6 +46,13 @@ if __name__ == "__main__":
                 "confirmStatus":"Y",
                 "sync":"false"
             }
-            obj = requests.post('http://222.82.237.75:8888/E-office/sit/employeeIdConfirm', data = pa, timeout=30, headers=header)
-            print(obj.text)
+            while True:
+                try:
+                    obj = requests.post('http://222.82.237.75:8888/E-office/sit/employeeIdConfirm', data = pa, timeout=30, headers=header)
+                    print(obj.text)
+                    break
+                except requests.exceptions.ConnectionError:
+                    print('[ERROR]ConnectionError -- will retry connect')
+                    time.sleep(3)
+
             time.sleep(10)
