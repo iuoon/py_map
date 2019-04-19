@@ -312,6 +312,17 @@ class mainFrame(wx.Frame):
                 rspeed = road['speed'] if 'speed' in road else '0'
                 rstatus = road['status'] if 'status' in road else '0'
 
+                plen=len(rpolyline)
+                if plen > 30000:
+                    rpolyline=rpolyline[0:30000]
+                    while True:
+                        if rpolyline.endswith(";"):
+                            rpolyline=rpolyline[0:plen-1]
+                            break
+                        else:
+                            plen=plen-1
+                            rpolyline=rpolyline[0:plen]
+
                 rdArr=[]
                 rdArr.append(int(rangle))
                 rdArr.append(str(rdirection)+"\t")
