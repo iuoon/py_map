@@ -17,20 +17,30 @@ class mainFrame(wx.Frame):
         wx.StaticText(self, -1, u'请求地址：', pos=(10, 20), size=(60, -1), style=wx.ALIGN_LEFT)
         self.host = wx.TextCtrl(self, -1, '', pos=(70, 20), size=(260, -1), name='host', style=wx.TE_LEFT)
         wx.StaticText(self, -1, u'Cookie：', pos=(10, 50), size=(60, -1), style=wx.ALIGN_LEFT)
-        self.cookie = wx.TextCtrl(self, -1, '', pos=(70, 50), size=(260, -1), name='host', style=wx.TE_LEFT)
-        self.area = wx.TextCtrl(self, -1, '', pos=(10, 130), size=(320, 200), name='area', style=wx.TE_LEFT | wx.TE_MULTILINE)
+        self.cookie = wx.TextCtrl(self, -1, '', pos=(70, 50), size=(260, -1), name='cookie', style=wx.TE_LEFT)
+
+
+        wx.StaticText(self, -1, u'pkId：', pos=(10, 82), size=(60, -1), style=wx.ALIGN_LEFT)
+        self.pkId = wx.TextCtrl(self, -1, '27694', pos=(70, 80), size=(260, -1), name='pkId', style=wx.TE_LEFT)
+
+        wx.StaticText(self, -1, u'licenseNum：', pos=(10, 122), size=(80, -1), style=wx.ALIGN_LEFT)
+        self.licenseNum = wx.TextCtrl(self, -1, '91650100397711723R', pos=(90, 120), size=(240, -1), name='licenseNum', style=wx.TE_LEFT)
+
+
+        wx.StaticText(self, -1, u'请选择认证类型：', pos=(10, 150), size=(100, -1), style=wx.ALIGN_LEFT)
+        pros=['现场管理人员', '注册建造师', '技术工人']
+        self.ch1 = wx.ComboBox(self,-1,value='请选择',choices=pros,pos=(110, 150))
+
+        self.area = wx.TextCtrl(self, -1, '', pos=(10, 190), size=(320, 200), name='area', style=wx.TE_LEFT | wx.TE_MULTILINE)
 
         self.btn_start = wx.Button(self, -1, u'开始批量认证', pos=(350, 20), size=(100, 25))
-
-        wx.StaticText(self, -1, u'请选择认证类型：', pos=(10, 90), size=(100, -1), style=wx.ALIGN_LEFT)
-        pros=['现场管理人员', '注册建造师', '技术工人']
-        self.ch1 = wx.ComboBox(self,-1,value='请选择',choices=pros,pos=(110, 90))
 
         self.btn_start.Bind(wx.EVT_LEFT_DOWN, self.startWork)
         self.Bind(wx.EVT_COMBOBOX, self.OnTypeChoice, self.ch1)
 
         self.currentStep=''
         self.entityName=''
+        self
 
     def OnTypeChoice(self,evt):
         type= evt.GetString()
@@ -78,6 +88,8 @@ class mainFrame(wx.Frame):
                     self.area.AppendText(name+cardNo+"认证失败,请更换cookie重试\n")
                 else:
                     self.area.AppendText(name+cardNo+"认证成功\n")
+            else:
+                self.area.AppendText(name+cardNo+"认证成功\n")
             time.sleep(10)
         self.area.AppendText("认证结束\n")
         self.host.Enable()
@@ -95,14 +107,14 @@ class mainFrame(wx.Frame):
                   'Cache-Control': 'max-age=0',
                   'Connection': 'keep-alive',
                   'Accept-Encoding': 'gzip, deflate',
-                  'Host': '222.82.237.75:8070',
+                  # 'Host': '222.82.237.75:8070',
                   'Pragma': 'no-cache',
                   'Content-Type': 'application/x-www-form-urlencoded',
                   'User-Agent': 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; InfoPath.3; .NET4.0C)',
                   'Cookie': self.cookie.GetValue()
                   }
         paramData={
-            "pkId":"27694",
+            "pkId":self.pkId.GetValue(), #27694
             "cardNo":cardNo,
             "entityName":self.entityName
         }
@@ -127,7 +139,7 @@ class mainFrame(wx.Frame):
                 print(employee['idCardPhoto'])
                 print(str(employee['value']))
                 pa = {
-                    "pkId":"27694",
+                    "pkId":self.pkId.GetValue(),
                     "idCard":cardNo,
                     "idCardPhoto":str(employee['idCardPhoto']),
                     "idCardName":name,
@@ -172,7 +184,7 @@ class mainFrame(wx.Frame):
                    'Cookie': self.cookie.GetValue()
                    }
         paramData={
-            "licenseNum":'91650100397711723R',
+            "licenseNum":self.licenseNum.GetValue(),
             "cardNo":str(card),
             "employeeName":str(name),
             "entityName":self.entityName
@@ -197,7 +209,7 @@ class mainFrame(wx.Frame):
             print(employee['idCardPhoto'])
             print(str(employee['value']))
             pa = {
-                "licenseNum":"91650100397711723R",
+                "licenseNum":self.licenseNum.GetValue(),
                 "idCard":card,
                 "idCardPhoto":str(employee['idCardPhoto']),
                 "idCardName":name,
