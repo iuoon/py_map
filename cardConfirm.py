@@ -28,7 +28,7 @@ class mainFrame(wx.Frame):
 
 
         wx.StaticText(self, -1, u'请选择认证类型：', pos=(10, 150), size=(100, -1), style=wx.ALIGN_LEFT)
-        pros=['现场管理人员', '注册建造师', '技术工人']
+        pros=['现场管理人员', '注册建造师', '技术工人', '职称人员']
         self.ch1 = wx.ComboBox(self,-1,value='请选择',choices=pros,pos=(110, 150))
 
         self.area = wx.TextCtrl(self, -1, '', pos=(10, 190), size=(320, 200), name='area', style=wx.TE_LEFT | wx.TE_MULTILINE)
@@ -53,6 +53,9 @@ class mainFrame(wx.Frame):
         if type == '技术工人':
             self.currentStep='jsgrInfo'
             self.entityName='Workers'
+        if type == '职称人员':
+            self.currentStep='glryInfo'
+            self.entityName='Managers'
 
 
     def startWork(self,event):
@@ -134,16 +137,22 @@ class mainFrame(wx.Frame):
             return False
         try:
             if data['status']:
-                print(data['data'][0][5])
-                employee=data['data'][0][5]
-                print(employee['idCardPhoto'])
-                print(str(employee['value']))
+                employeeData=data['data'][0]
+                idCardPhoto=''
+                employeeId='',
+                for de in employeeData:
+                    if de['field']=='employeeId':
+                        employeeId=de['value']
+                        idCardPhoto=de['idCardPhoto']
+                        break
+                print(idCardPhoto)
+                print(str(employeeId))
                 pa = {
                     "pkId":self.pkId.GetValue(),
                     "idCard":cardNo,
-                    "idCardPhoto":str(employee['idCardPhoto']),
+                    "idCardPhoto":str(idCardPhoto),
                     "idCardName":name,
-                    "employeeId":str(employee['value']),
+                    "employeeId":employeeId,
                     "currentStep":self.currentStep,
                     "confirmStatus":"Y",
                     "sync":"false"
@@ -205,15 +214,22 @@ class mainFrame(wx.Frame):
             return False
         if data['status']:
             print(data['data'][0][4])
-            employee=data['data'][0][4]
-            print(employee['idCardPhoto'])
-            print(str(employee['value']))
+            employeeData=data['data'][0]
+            idCardPhoto=''
+            employeeId='',
+            for de in employeeData:
+                if de['field']=='employeeId':
+                    employeeId=de['value']
+                    idCardPhoto=de['idCardPhoto']
+                    break
+            print(idCardPhoto)
+            print(employeeId)
             pa = {
                 "licenseNum":self.licenseNum.GetValue(),
                 "idCard":card,
-                "idCardPhoto":str(employee['idCardPhoto']),
+                "idCardPhoto":str(idCardPhoto),
                 "idCardName":name,
-                "employeeId":str(employee['value']),
+                "employeeId":str(employeeId),
                 "currentStep":self.currentStep,
                 "confirmStatus":"Y",
                 "sync":"false"
