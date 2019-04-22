@@ -409,6 +409,8 @@ class mainFrame(wx.Frame):
                for r in range(1, len(datacsv)):
                    polyline =datacsv.iat[r,4]
                    print(polyline)
+                   if polyline=='' or polyline is None:
+                       continue
                    s1 = polyline.replace(';', '|') # 点参数
                    remove_digits = str.maketrans('', '', digits)
                    s2 = polyline.translate(remove_digits).replace('.,.', '1').replace(';', ',')
