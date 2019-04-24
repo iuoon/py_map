@@ -247,10 +247,11 @@ class mainFrame(wx.Frame):
         # 创建文件夹
         if not os.path.exists(dirs):
             os.makedirs(dirs)
+
+        self.file1 = dirs+'\\'+  date +'.csv'
         fileExist=False
         if os.path.exists(self.file1):
             fileExist=True
-        self.file1 = dirs+'\\'+  date +'.csv'
         keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
         #csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')  # 按utf-8编码写入
         csv_file=open(self.file1, 'a+', newline='',encoding='ansi',)                    # 按默认编码写入
