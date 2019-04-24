@@ -80,10 +80,10 @@ class mainFrame(wx.Frame):
         self.ch1.Disable()
         for line in open("card.txt","r",encoding="utf-8"): #设置文件对象并读取每一行文件
             arr=line.split("#")
-            print(arr[0])
             print(arr[1])
-            name=arr[0].replace("\n",'')
-            cardNo=arr[1].replace("\n",'')
+            print(arr[2])
+            name=arr[1].replace("\n",'')
+            cardNo=arr[2].replace("\n",'')
             if self.readCard(name,cardNo) == False:
                 print("认证方式一失败，开始尝试第二种方式")
                 self.area.AppendText(name+cardNo+"认证方式一失败，开始尝试第二种方式\n")
