@@ -213,7 +213,6 @@ class mainFrame(wx.Frame):
         except:
             return False
         if data['status']:
-            print(data['data'][0][4])
             employeeData=data['data'][0]
             idCardPhoto=''
             employeeId='',
@@ -222,8 +221,6 @@ class mainFrame(wx.Frame):
                     employeeId=de['value']
                     idCardPhoto=de['idCardPhoto']
                     break
-            print(idCardPhoto)
-            print(employeeId)
             pa = {
                 "licenseNum":self.licenseNum.GetValue(),
                 "idCard":card,
@@ -234,11 +231,13 @@ class mainFrame(wx.Frame):
                 "confirmStatus":"Y",
                 "sync":"false"
             }
+            print(pa)
             while True:
                 try:
                     obj = requests.post(self.host.GetValue()+'/E-office/sit/employeeIdConfirm', data = pa, timeout=30, headers=header)
                     try:
                         dt1 = obj.json()
+                        print(obj.text)
                         if dt1['status'] == False:
                             return False
                     except:
