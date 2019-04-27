@@ -62,6 +62,7 @@ class mainFrame(wx.Frame):
             pros.append(key)
         self.ch1 = wx.ComboBox(self,-1,value='选择省',choices=pros,pos=(350, 170))
         self.ch2 = wx.ComboBox(self,-1,value='选择市',choices=[],pos=(350, 200))
+        self.province = '-1' #当前省
         self.city = '-1'  # 当前城市
         self.preCity = '-1'  # 上一次城市
         self.cityAlias ='-1' #
@@ -210,6 +211,7 @@ class mainFrame(wx.Frame):
         if self.cityAlias == '全国':
            for ctname in city.qg_pos:
                self.city=ctname
+               self.province=city.qg_pos[ctname]
                self.reptileMap(key)
         else:
             self.cityAlias = self.city
@@ -252,7 +254,7 @@ class mainFrame(wx.Frame):
         fileExist=False
         if os.path.exists(self.file1):
             fileExist=True
-        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed']
+        keys1 = ['angle', 'direction', 'lcodes', 'name', 'polyline', 'speed', 'status', 'description', 'evaluation', 'datetime','roadlevel','maxspeed','province','city']
         #csv_file=open(self.file1, 'a+', newline='', encoding='utf-8')  # 按utf-8编码写入
         csv_file=open(self.file1, 'a+', newline='',encoding='ansi',)                    # 按默认编码写入
         csv_writer = csv.writer(csv_file,dialect='excel')
@@ -314,8 +316,8 @@ class mainFrame(wx.Frame):
                 rstatus = road['status'] if 'status' in road else '0'
 
                 plen=len(rpolyline)
-                if plen > 30000:
-                    rpolyline=rpolyline[0:30000]
+                if plen > 27000:
+                    rpolyline=rpolyline[0:27000]
                     while True:
                         if rpolyline.endswith(";"):
                             rpolyline=rpolyline[0:plen-1]
@@ -335,6 +337,10 @@ class mainFrame(wx.Frame):
                 rdArr.append(str(description)+"\t")
                 rdArr.append(str(evaluation)+"\t")
                 rdArr.append(str(dttime)+"\t")
+                rdArr.append(str('')+"\t")
+                rdArr.append(str('')+"\t")
+                rdArr.append(self.province+"\t")
+                rdArr.append(self.city+"\t")
                 csv_writer.writerow(rdArr)
                 csv_file.flush()
 
