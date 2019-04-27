@@ -376,10 +376,13 @@ class mainFrame(wx.Frame):
         if key == '':
             self.area.AppendText('[warn]请填写高德web服务key！！！\n')
             return
+        if self.isreptiling:
+            self.area.AppendText('[warn]正在爬取交通态势中，请等待爬路完毕后再爬限速！！！\n')
+            return
         self.btn_start2.Disable()
         self.btn_cancel2.Enable()
 
-        self.reptileRoad(key)
+
         if self.ispause2:
             self.ispause2=False
             self.scheduler2.resume()
@@ -389,8 +392,9 @@ class mainFrame(wx.Frame):
             self.t2.start()
 
     def startWork2(self,key):
-        # 定时每天 01:00:30秒执行任务
-        trigger2 = CronTrigger(day_of_week='0-6', hour = 1,minute = 0,second = 30 )
+        self.reptileRoad(key)
+        # 定时每天 01:15:30秒执行任务
+        trigger2 = CronTrigger(day_of_week='0-6', hour = 1,minute = 15,second = 30 )
         self.scheduler2.add_job(self.reptileRoad, trigger2, args=(key,))
         self.scheduler2.start()
 
@@ -412,7 +416,7 @@ class mainFrame(wx.Frame):
                self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
                # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
                datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
-               print(len(datacsv))
+               print("道路条数：",len(datacsv))
                for r in range(1, len(datacsv)):
                    polyline =datacsv.iat[r,4]
                    print(polyline)
