@@ -419,9 +419,21 @@ class mainFrame(wx.Frame):
                print("道路条数：",len(datacsv))
                for r in range(1, len(datacsv)):
                    polyline =datacsv.iat[r,4]
-                   print(polyline)
+
                    if polyline=='' or polyline is None:
                        continue
+
+                   plen=len(polyline)
+                   if plen > 10000:
+                       polyline=polyline[0:10000]
+                       while True:
+                           if polyline.endswith(";"):
+                               polyline=polyline[0:plen-1]
+                               break
+                           else:
+                               plen=plen-1
+                               polyline=polyline[0:plen]
+
                    s1 = polyline.replace(';', '|') # 点参数
                    remove_digits = str.maketrans('', '', digits)
                    s2 = polyline.translate(remove_digits).replace('.,.', '1').replace(';', ',')
@@ -451,7 +463,12 @@ class mainFrame(wx.Frame):
                            self.area.AppendText('[ERROR]ConnectionError2 -- will retry connect\n')
                            time.sleep(1)
                    self.area.AppendText('[info]正在爬取（'+str(datacsv.iat[r,3]).replace("\t","") +'）道路限速，请勿关闭程序\n')
-                   data = obj.json()
+                   # 返回异常--则进入下一个
+                   try:
+                       data = obj.json()
+                   except:
+                       continue
+
                    if data['status'] == '0':
                        print('[info]'+str(data))
                        print('[warn]请求参数错误')
@@ -463,8 +480,8 @@ class mainFrame(wx.Frame):
                            if maxspeed is None or maxspeed =='' or maxspeed == "-1":
                                continue
                            else:
-                              datacsv.iat[r,10]=int(roadlevel)
-                              datacsv.iat[r,11]=int(maxspeed)
+                              datacsv.iat[r,10]=str(roadlevel)+"\t"
+                              datacsv.iat[r,11]=str(maxspeed)+"\t"
                               datacsv.to_csv(filePath,index=False, encoding='ansi',)
                               break
                    #if r>10:
