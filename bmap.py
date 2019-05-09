@@ -17,6 +17,7 @@ def rep(bounds):
     data = obj.json()
     print(data)
 
+
 def LocaDiv(ploy):
     list = []
     p0 = float(ploy.split(',')[0])
