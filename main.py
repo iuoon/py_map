@@ -194,14 +194,14 @@ class mainFrame(wx.Frame):
         p1 = float(ploy.split(',')[1])
         p2 = float(ploy.split(',')[2])
         p3 = float(ploy.split(',')[3])
-        len1 = int((p2 - p0 + 0.0001) / 0.05)
-        len2 = int((p3 - p1 + 0.0001) / 0.04)
+        len1 = int((p2 - p0 + 0.0001) / 0.08)
+        len2 = int((p3 - p1 + 0.0001) / 0.06)
         for i in range(0, len1):
             for j in range(0, len2):
-                a = round(p0 + round(0.05 * i, 2), 6)
-                b = round(p1 + round(0.04 * j, 2), 6)
-                c = round(a+round(0.05 * 1, 2), 6)
-                d = round(b+round(0.04 * 1, 2), 6)
+                a = round(p0 + round(0.08 * i, 2), 6)
+                b = round(p1 + round(0.06 * j, 2), 6)
+                c = round(a+round(0.08 * 1, 2), 6)
+                d = round(b+round(0.06 * 1, 2), 6)
                 pos = str(a)+','+str(b)+';'+str(c)+','+str(d)
                 list.append(pos)
         return list
@@ -236,6 +236,8 @@ class mainFrame(wx.Frame):
             lotc = city.city_pos[self.city]
         print(lotc)
         locs = self.LocaDiv2(lotc)
+        # print(self.city,len(locs))
+
         # date = time.strftime("%Y%m%d-%H") # 每小时生成一次
         date = time.strftime("%Y%m%d")   # 每天一次
 
@@ -340,8 +342,8 @@ class mainFrame(wx.Frame):
                 rdArr.append(str(description)+"\t")
                 rdArr.append(str(evaluation)+"\t")
                 rdArr.append(str(dttime)+"\t")
-                rdArr.append(str('')+"\t")
-                rdArr.append(str('')+"\t")
+                rdArr.append(str('0')+"\t")
+                rdArr.append(str('0')+"\t")
                 rdArr.append(self.province+"\t")
                 rdArr.append(self.city+"\t")
                 csv_writer.writerow(rdArr)
@@ -363,7 +365,7 @@ class mainFrame(wx.Frame):
         self.preReptileMap(key)
         self.isrunsched = True
         # 周一到周日,每小时执行一次   每5秒second='*/5' hour='0-23'
-        trigger = CronTrigger(day_of_week='0-6', hour='0-23')
+        trigger = CronTrigger(day_of_week='0-6', minute='*/3')
         self.scheduler.add_job(self.preReptileMap, trigger, args=(key,))
         self.scheduler.start()
 
@@ -395,6 +397,7 @@ class mainFrame(wx.Frame):
             self.t2.start()
 
     def startWork2(self,key):
+        # 0b1804994cd63974f873a29a269d65e7
         self.reptileRoad(key)
         # 定时每天 01:15:30秒执行任务
         trigger2 = CronTrigger(day_of_week='0-6', hour = 1,minute = 15,second = 30 )
@@ -423,9 +426,18 @@ class mainFrame(wx.Frame):
         # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
         datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
         print("道路条数：",len(datacsv))
-        for r in range(1, len(datacsv)):
+        for r in range(0, len(datacsv)):
+            # 已经爬取过了，不再爬取
+            roadMaxSpeed=str(datacsv.iat[r,11]).replace("\t","").replace(" ","")
+            if int(roadMaxSpeed) > 0 or int(roadMaxSpeed) == -1:
+                continue
+
+            datacsv.iat[r,10]="-1\t"
+            datacsv.iat[r,11]="-1\t"
+            datacsv.to_csv(filePath,index=False, encoding='ansi',)
+
             polyline =datacsv.iat[r,4]
-            if polyline=='' or polyline is None:
+            if polyline == '' or polyline is None:
                 continue
             plen=len(polyline)
             if plen > 10000:
@@ -465,8 +477,9 @@ class mainFrame(wx.Frame):
                     print('[ERROR]ConnectionError2 -- will retry connect')
                     self.area.AppendText('[ERROR]ConnectionError2 -- will retry connect\n')
                     time.sleep(1)
-            self.area.AppendText('[info]正在爬取（'+str(datacsv.iat[r,3]).replace("\t","") +'）道路限速，请勿关闭程序\n')
+            self.area.AppendText('[info]正在爬取['+str(datacsv.iat[r,13]).replace("\t","")+'-'+str(datacsv.iat[r,3]).replace("\t","") +']限速，请勿关闭\n')
             # 返回异常--则进入下一个
+
             try:
                 data = obj.json()
             except:
@@ -479,13 +492,9 @@ class mainFrame(wx.Frame):
                 for road in data['roads']:
                     maxspeed= road.get("maxspeed")
                     roadlevel= road.get("roadlevel")
-                    if maxspeed is None or maxspeed =='' or maxspeed == "-1":
-                        continue
-                    else:
-                       datacsv.iat[r,10]=str(roadlevel)+"\t"
-                       datacsv.iat[r,11]=str(maxspeed)+"\t"
-                       datacsv.to_csv(filePath,index=False, encoding='ansi',)
-                       break
+                    datacsv.iat[r,10]=str(roadlevel)+"\t"
+                    datacsv.iat[r,11]=str(maxspeed)+"\t"
+                    datacsv.to_csv(filePath,index=False, encoding='ansi',)
             #if r>10:
             #    break
         # datacsv.to_csv(filePath,index=False, encoding='utf-8')
