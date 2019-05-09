@@ -68,10 +68,10 @@ class mainFrame(wx.Frame):
         self.cityAlias ='-1' #
         self.cityTip = wx.StaticText(self, -1, u'当前城市：未选择', pos=(350, 230), size=(400, -1), style=wx.ST_NO_AUTORESIZE)
 
-        self.btn_start2 = wx.Button(self, -1, u'开始爬取限速', pos=(20, 280), size=(100, 25))
-        self.btn_cancel2 = wx.Button(self, -1, u'取消爬取限速', pos=(140, 280), size=(100, 25))
+        #self.btn_start2 = wx.Button(self, -1, u'开始爬取限速', pos=(20, 280), size=(100, 25))
+        #self.btn_cancel2 = wx.Button(self, -1, u'取消爬取限速', pos=(140, 280), size=(100, 25))
 
-        self.btn_cancel2.Disable()
+        #self.btn_cancel2.Disable()
 
         # 控件事件
         #self.gd_key.Bind(wx.EVT_TEXT, self.EvtText)
@@ -83,8 +83,8 @@ class mainFrame(wx.Frame):
         self.Bind(wx.EVT_COMBOBOX, self.OnProvinceChoice, self.ch1)
         self.Bind(wx.EVT_COMBOBOX, self.OnCityChoice, self.ch2)
 
-        self.btn_start2.Bind(wx.EVT_LEFT_DOWN, self.StartReptileRoad)
-        self.btn_cancel2.Bind(wx.EVT_LEFT_DOWN, self.CancelReptileRoad)
+        #self.btn_start2.Bind(wx.EVT_LEFT_DOWN, self.StartReptileRoad)
+        #self.btn_cancel2.Bind(wx.EVT_LEFT_DOWN, self.CancelReptileRoad)
         # 暂停按钮启动时不可点击
         self.btn_pause.Disable()
         # 创建异步执行爬取数据的线程
@@ -213,6 +213,9 @@ class mainFrame(wx.Frame):
                self.city=ctname
                self.province=city.qg_pos[ctname]
                self.reptileMap(key)
+           # 当道路爬取完毕后开始爬取道路
+           time.sleep(3)
+           self.reptileRoad(key)
         else:
             self.cityAlias = self.city
             self.reptileMap(key)
@@ -344,7 +347,7 @@ class mainFrame(wx.Frame):
                 csv_writer.writerow(rdArr)
                 csv_file.flush()
 
-            time.sleep(1)    # 间隔1s执行一次分块请求，避免并发度高被限制
+            #time.sleep(0.1)    # 间隔0.1s执行一次分块请求，避免并发度高被限制
         csv_file.close()
         endTime = time.time()
         print('[info]数据爬取完毕，用时%.2f秒' % (endTime-startTime))
@@ -407,90 +410,88 @@ class mainFrame(wx.Frame):
 
 
     def reptileRoad(self,key):
+
+
         # 获取道路文件路径
-        for root, dirs, files in os.walk(os.path.abspath('.')):
-           dir=time.strftime("%Y%m%d")
-           if len(files)>0 and files[0].endswith('.csv'):
-               filePath = root+"\\"+files[0]
-               print('file:', filePath)
-               self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
-               # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
-               datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
-               print("道路条数：",len(datacsv))
-               for r in range(1, len(datacsv)):
-                   polyline =datacsv.iat[r,4]
-
-                   if polyline=='' or polyline is None:
-                       continue
-
-                   plen=len(polyline)
-                   if plen > 10000:
-                       polyline=polyline[0:10000]
-                       while True:
-                           if polyline.endswith(";"):
-                               polyline=polyline[0:plen-1]
-                               break
-                           else:
-                               plen=plen-1
-                               polyline=polyline[0:plen]
-
-                   s1 = polyline.replace(';', '|') # 点参数
-                   remove_digits = str.maketrans('', '', digits)
-                   s2 = polyline.translate(remove_digits).replace('.,.', '1').replace(';', ',')
-                   arr = s2.split(",")  #方向速度参数
-                   s3 = ""  # 时间戳参数
-                   t = time.time()
-                   for i in range(0,len(arr)):
-                       tt=int(t)+i
-                       s3 = s3+str(tt)+','
-                   s3 = s3[:len(s3)-1]
-                   param={
-                      'key': str(key),
-                      'extensions': 'all',
-                      'carid': 'ts001',
-                      'locations': s1,
-                      'direction': s2,
-                      'speed': s2,
-                      'time': s3
-                   }
-                   obj = '{}'
-                   while True:
-                       try:
-                           obj =requests.get('https://restapi.amap.com/v3/autograsp?', params=param, timeout=30)
-                           break
-                       except requests.exceptions.ConnectionError:
-                           print('[ERROR]ConnectionError2 -- will retry connect')
-                           self.area.AppendText('[ERROR]ConnectionError2 -- will retry connect\n')
-                           time.sleep(1)
-                   self.area.AppendText('[info]正在爬取（'+str(datacsv.iat[r,3]).replace("\t","") +'）道路限速，请勿关闭程序\n')
-                   # 返回异常--则进入下一个
-                   try:
-                       data = obj.json()
-                   except:
-                       continue
-
-                   if data['status'] == '0':
-                       print('[info]'+str(data))
-                       print('[warn]请求参数错误')
-                       continue
-                   if data['status'] == '1':
-                       for road in data['roads']:
-                           maxspeed= road.get("maxspeed")
-                           roadlevel= road.get("roadlevel")
-                           if maxspeed is None or maxspeed =='' or maxspeed == "-1":
-                               continue
-                           else:
-                              datacsv.iat[r,10]=str(roadlevel)+"\t"
-                              datacsv.iat[r,11]=str(maxspeed)+"\t"
-                              datacsv.to_csv(filePath,index=False, encoding='ansi',)
-                              break
-                   #if r>10:
-                   #    break
-               # datacsv.to_csv(filePath,index=False, encoding='utf-8')
-               datacsv.to_csv(filePath,index=False, encoding='ansi',)
-
-               print(filePath, "爬取道路限速和道路等级成功")
-               self.area.AppendText('[info]爬取道路限速成功，数据存储路径：'+filePath +'\n')
+        #for root, dirs, files in os.walk(os.path.abspath('.')):
+           #dir=time.strftime("%Y%m%d")
+           #if len(files)>0 and files[0].endswith('.csv'):
+               #filePath = root+"\\"+files[0]
+        filePath=self.file1
+        print('file:', filePath)
+        self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
+        # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
+        datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
+        print("道路条数：",len(datacsv))
+        for r in range(1, len(datacsv)):
+            polyline =datacsv.iat[r,4]
+            if polyline=='' or polyline is None:
+                continue
+            plen=len(polyline)
+            if plen > 10000:
+                polyline=polyline[0:10000]
+                while True:
+                    if polyline.endswith(";"):
+                        polyline=polyline[0:plen-1]
+                        break
+                    else:
+                        plen=plen-1
+                        polyline=polyline[0:plen]
+            s1 = polyline.replace(';', '|') # 点参数
+            remove_digits = str.maketrans('', '', digits)
+            s2 = polyline.translate(remove_digits).replace('.,.', '1').replace(';', ',')
+            arr = s2.split(",")  #方向速度参数
+            s3 = ""  # 时间戳参数
+            t = time.time()
+            for i in range(0,len(arr)):
+                tt=int(t)+i
+                s3 = s3+str(tt)+','
+            s3 = s3[:len(s3)-1]
+            param={
+               'key': str(key),
+               'extensions': 'all',
+               'carid': 'ts001',
+               'locations': s1,
+               'direction': s2,
+               'speed': s2,
+               'time': s3
+            }
+            obj = '{}'
+            while True:
+                try:
+                    obj =requests.get('https://restapi.amap.com/v3/autograsp?', params=param, timeout=30)
+                    break
+                except requests.exceptions.ConnectionError:
+                    print('[ERROR]ConnectionError2 -- will retry connect')
+                    self.area.AppendText('[ERROR]ConnectionError2 -- will retry connect\n')
+                    time.sleep(1)
+            self.area.AppendText('[info]正在爬取（'+str(datacsv.iat[r,3]).replace("\t","") +'）道路限速，请勿关闭程序\n')
+            # 返回异常--则进入下一个
+            try:
+                data = obj.json()
+            except:
+                continue
+            if data['status'] == '0':
+                print('[info]'+str(data))
+                print('[warn]请求参数错误')
+                continue
+            if data['status'] == '1':
+                for road in data['roads']:
+                    maxspeed= road.get("maxspeed")
+                    roadlevel= road.get("roadlevel")
+                    if maxspeed is None or maxspeed =='' or maxspeed == "-1":
+                        continue
+                    else:
+                       datacsv.iat[r,10]=str(roadlevel)+"\t"
+                       datacsv.iat[r,11]=str(maxspeed)+"\t"
+                       datacsv.to_csv(filePath,index=False, encoding='ansi',)
+                       break
+            #if r>10:
+            #    break
+        # datacsv.to_csv(filePath,index=False, encoding='utf-8')
+        datacsv.to_csv(filePath,index=False, encoding='ansi',)
+        print(filePath, "爬取道路限速和道路等级成功")
+        self.area.AppendText('[info]爬取道路限速成功，数据存储路径：'+filePath +'\n')
 
 
 class mainApp(wx.App):
