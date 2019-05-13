@@ -194,14 +194,14 @@ class mainFrame(wx.Frame):
         p1 = float(ploy.split(',')[1])
         p2 = float(ploy.split(',')[2])
         p3 = float(ploy.split(',')[3])
-        len1 = int((p2 - p0 + 0.0001) / 0.08)
-        len2 = int((p3 - p1 + 0.0001) / 0.06)
+        len1 = int((p2 - p0 + 0.0001) / 0.05)
+        len2 = int((p3 - p1 + 0.0001) / 0.04)
         for i in range(0, len1):
             for j in range(0, len2):
-                a = round(p0 + round(0.08 * i, 2), 6)
-                b = round(p1 + round(0.06 * j, 2), 6)
-                c = round(a+round(0.08 * 1, 2), 6)
-                d = round(b+round(0.06 * 1, 2), 6)
+                a = round(p0 + round(0.05 * i, 2), 6)
+                b = round(p1 + round(0.04 * j, 2), 6)
+                c = round(a+round(0.05 * 1, 2), 6)
+                d = round(b+round(0.04 * 1, 2), 6)
                 pos = str(a)+','+str(b)+';'+str(c)+','+str(d)
                 list.append(pos)
         return list
