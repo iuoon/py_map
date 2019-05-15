@@ -114,12 +114,15 @@ class mainFrame(wx.Frame):
         evt.Skip()
 
 
+    datacsv={}
     file1 =''
     iswriting=False   # 是否正在开始写xls
     ispause = False   # 是否暂停
     isreptiling = False  #是否在爬取中
     isrunsched =False  #是否开启了调度
     ispause2=False     # 是否开启爬取限速
+    iswriting2=False     # 是否正在开始写csv
+    file2=''
 
     def OnClose(self, evt):
         # 关闭窗口事件函数
@@ -129,6 +132,8 @@ class mainFrame(wx.Frame):
                 print(1)
             if self.isrunsched:
                 self.scheduler.shutdown()
+            if self.iswriting2:
+                self.datacsv.to_csv(self.file2,index=False, encoding='ansi',)
             self.Destroy()
 
 
@@ -416,23 +421,24 @@ class mainFrame(wx.Frame):
            # dir=time.strftime("%Y%m%d")
            if len(files)>0 and files[0].endswith('.csv'):
                filePath = root+"\\"+files[0]
-
+               self.iswriting2=True
+               self.file2=filePath
                print('file:', filePath)
                self.area.AppendText('[info]文件：'+filePath +'，开始爬取道路限速\n')
                # datacsv = pd.read_csv(filePath,encoding='utf-8',) # 按utf-8编码读取
-               datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
-               print("道路条数：",len(datacsv))
-               for r in range(0, len(datacsv)):
+               self.datacsv = pd.read_csv(filePath,encoding='ansi',)   # 按默认编码读取
+               print("道路条数：",len(self.datacsv))
+               for r in range(0, len(self.datacsv)):
                    # 已经爬取过了，不再爬取
-                   roadMaxSpeed=str(datacsv.iat[r,13]).replace("\t","").replace(" ","")
+                   roadMaxSpeed=str(self.datacsv.iat[r,13]).replace("\t","").replace(" ","")
                    if int(roadMaxSpeed) > 0 or int(roadMaxSpeed) == -1:
                        continue
 
-                   datacsv.iat[r,12]="-1\t"
-                   datacsv.iat[r,13]="-1\t"
-                   datacsv.to_csv(filePath,index=False, encoding='ansi',)
+                   self.datacsv.iat[r,12]="-1\t"
+                   self.datacsv.iat[r,13]="-1\t"
+                   #datacsv.to_csv(filePath,index=False, encoding='ansi',)
 
-                   polyline =datacsv.iat[r,6]
+                   polyline =self.datacsv.iat[r,6]
                    if polyline == '' or polyline is None:
                        continue
                    plen=len(polyline)
@@ -473,7 +479,7 @@ class mainFrame(wx.Frame):
                            print('[ERROR]ConnectionError2 -- will retry connect')
                            self.area.AppendText('[ERROR]ConnectionError2 -- will retry connect\n')
                            time.sleep(1)
-                   self.area.AppendText('[info]正在爬取['+str(datacsv.iat[r,1]).replace("\t","")+'-'+str(datacsv.iat[r,5]).replace("\t","") +']限速，请勿关闭\n')
+                   self.area.AppendText('[info]正在爬取['+str(self.datacsv.iat[r,1]).replace("\t","")+'-'+str(self.datacsv.iat[r,5]).replace("\t","") +']限速，请勿关闭\n')
                    # 返回异常--则进入下一个
 
                    try:
@@ -488,13 +494,14 @@ class mainFrame(wx.Frame):
                        for road in data['roads']:
                            maxspeed= road.get("maxspeed")
                            roadlevel= road.get("roadlevel")
-                           datacsv.iat[r,12]=str(roadlevel)+"\t"
-                           datacsv.iat[r,13]=str(maxspeed)+"\t"
-                           datacsv.to_csv(filePath,index=False, encoding='ansi',)
+                           self.datacsv.iat[r,12]=str(roadlevel)+"\t"
+                           self.datacsv.iat[r,13]=str(maxspeed)+"\t"
+                           #datacsv.to_csv(filePath,index=False, encoding='ansi',)
                    #if r>10:
                    #    break
                # datacsv.to_csv(filePath,index=False, encoding='utf-8')
-               datacsv.to_csv(filePath,index=False, encoding='ansi',)
+               self.datacsv.to_csv(filePath,index=False, encoding='ansi',)
+               self.iswriting2=False
                print(filePath, "爬取道路限速和道路等级成功")
                self.area.AppendText('[info]爬取道路限速成功，数据存储路径：'+filePath +'\n')
 
