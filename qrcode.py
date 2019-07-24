@@ -23,7 +23,7 @@ if __name__ == "__main__":
         dd=root.replace("\\", "/")
         dd="file:/"+dd+"/tmp/"
         if not os.path.exists(root+"\\tmp\\"):
-            os.makedirs(dd)
+            os.makedirs(root+"\\tmp\\")
         for img in imgs:
             if img.endswith('.jpg') or img.endswith('.png'):
                  print("开始解析文件："+img+"\n")
