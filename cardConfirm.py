@@ -42,7 +42,7 @@ class mainFrame(wx.Frame):
         self.entityName=''
         self
 
-    def OnTypeChoice(self,evt):
+    def OnTypeChoice(self, evt):
         type= evt.GetString()
         if type == '现场管理人员':
             self.currentStep='xcglryInfo'
