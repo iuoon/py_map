@@ -8,12 +8,16 @@ import urllib
 from urllib import parse
 from openpyxl import load_workbook
 import time
+# import pandas as pd
+from bs4 import BeautifulSoup
+import re
 
 APP_TITLE = u'下载文件工具'
 APP_ICON = 'res/python.ico'
 
 
 class mainFrame(wx.Frame):
+
 
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, -1, APP_TITLE)
@@ -134,6 +138,96 @@ class mainFrame(wx.Frame):
                 print(e.reason)
                 print(e.code)
                 time.sleep(3)
+
+    def searchEnt(self, ent_name):
+        header = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Referer': 'http://10.100.248.214/manager/reportInfo/list?hasReport=false',
+            'x-requested-with': 'XMLHttpRequest',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Accept-Encoding': 'gzip, deflate',
+            'Host': '10.100.248.214',
+            'Origin': 'http://10.100.248.214',
+            'Pragma': 'no-cache',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
+            'Cookie': self.cookie.GetLabel()
+        }
+        paramData = {
+            'industryName': '',
+            'industryCode': '',
+            'provinceCode': '',
+            'cityCode': '',
+            'countyCode': '',
+            'permitCode': '',
+            'companyName': ent_name,
+            'startFztime': '',
+            'endFztime': '',
+            'fzjg': False,
+            'first': '',
+            'isUpdate': '',
+            'page': 1
+        }
+        try:
+            ret = requests.post('http://10.100.248.214/manager/reportInfo/list?hasReport=true', data=paramData,
+                                timeout=30, headers=self.header)
+            # df = pd.read_html(ret.text)[0]   # 该页面只返回一个表格，所以取第0个表格
+            # print(df)
+            soup = BeautifulSoup(ret.text, 'html.parser')
+            a_ctx = soup.findAll("a", {'target': 'rightFrame'})  # 抓取a标签
+            req_url2 = ''
+            for ax in a_ctx:
+                req_url2 = ax.get('href')
+                print('获取到企业详情url', req_url2)
+
+            if len(req_url2) <= 0:
+                print('没有查询到企业')
+                return
+            req_url2 = 'http://10.100.248.214' + req_url2
+
+        except requests.exceptions.ConnectionError:
+            print('[ERROR]ConnectionError -- will retry connect')
+
+    def searchPdf(self, req_url2):
+        header = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Referer': 'http://10.100.248.214/manager/reportInfo/list?hasReport=false',
+            'x-requested-with': 'XMLHttpRequest',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Accept-Encoding': 'gzip, deflate',
+            'Host': '10.100.248.214',
+            'Origin': 'http://10.100.248.214',
+            'Pragma': 'no-cache',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
+            'Cookie': self.cookie.GetLabel()
+        }
+
+        token = "a247c4ab8ab04ff1b470c9ff3bdd95fb"
+        req_url3 = 'http://10.100.248.214/report//pdf/month?reportId=dataid&token=a247c4ab8ab04ff1b470c9ff3bdd95fb'
+        try:
+            # 获取2018年的数据
+            ret = requests.get(req_url2 + '&year=2018',
+                               timeout=30, headers=self.header)
+            soup = BeautifulSoup(ret.text, 'html.parser')
+            a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
+            for ax in a_ctx:
+                data_herf = ax.get('href')
+                data_id = re.findall("\d+", data_herf)[0]
+                print('获取到数据id:', data_id)
+
+                # 在循环内一个个开始下载文件
+                req_url4 = req_url3.replace("dataid", data_id)
+
+
+        except requests.exceptions.ConnectionError:
+            print('[ERROR]ConnectionError -- will retry connect')
 
 
 class mainApp(wx.App):
