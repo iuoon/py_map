@@ -78,7 +78,7 @@ class mainFrame(wx.Frame):
             return
 
         self.area.AppendText("加载完毕，开始下载文件\n")
-        for r in range(3, ):
+        for r in range(3, size):
             ent_name = ent_list.pop(r)
             self.download(ent_name)
 
@@ -96,7 +96,7 @@ class mainFrame(wx.Frame):
         rnum = sheet.max_row
         cnum = sheet.max_column
         for r in range(3, rnum):
-            ent_name = sheet.cell(row=r, column=3).value
+            ent_name = sheet.cell(row=r, column=2).value
             print(ent_name)
             if ent_name is None:
                 continue
