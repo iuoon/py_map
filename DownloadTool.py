@@ -3,7 +3,15 @@ import requests
 import threading
 import os
 from urllib.request import urlretrieve
+import urllib
 from openpyxl import load_workbook
+import time
+from urllib import parse
+
+import sys
+import codecs
+
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 APP_TITLE = u'下载文件工具'
 APP_ICON = 'res/python.ico'
@@ -38,7 +46,7 @@ class mainFrame(wx.Frame):
         self.btn_start.Bind(wx.EVT_LEFT_DOWN, self.startWork)
 
     def OnSelectExcel(self, event):
-        dlg = wx.FileDialog(self,message=u"选择文件",
+        dlg = wx.FileDialog(self, message=u"选择文件",
                             defaultDir=os.getcwd(),
                             defaultFile="")
         if dlg.ShowModal() == wx.ID_OK:
@@ -73,14 +81,15 @@ class mainFrame(wx.Frame):
         self.area.AppendText("开始加载企业列表\n")
         ent_list = self.read_excel()
         size = len(ent_list)
-        if size > 0 or size < 0:
+        if size <= 0:
             self.area.AppendText("加载企业失败,结束下载\n")
             return
 
         self.area.AppendText("加载完毕，开始下载文件\n")
-        for r in range(3, size):
+        for r in range(0, size):
             ent_name = ent_list.pop(r)
             self.download(ent_name)
+            time.sleep(0.5)
 
         self.area.AppendText("认证结束\n")
         self.excelFile.Enable()
@@ -93,7 +102,7 @@ class mainFrame(wx.Frame):
         print('excel：', self.excelFile.GetValue())
         wb = load_workbook(self.excelFile.GetValue())
         sheet = wb.active
-        rnum = sheet.max_row
+        rnum = sheet.max_row+1
         cnum = sheet.max_column
         for r in range(3, rnum):
             ent_name = sheet.cell(row=r, column=2).value
@@ -105,7 +114,7 @@ class mainFrame(wx.Frame):
 
     def download(self, ent_name):
         down_url = "http://www.baidu.com/" + ent_name + ".pdf"
-        self.download_file1(down_url, self.outPath)
+        self.download_file2(down_url, self.outPath.GetLabel())
         return True
 
     def download_file1(self, url, store_path):
@@ -117,9 +126,19 @@ class mainFrame(wx.Frame):
             handler.write(file_data)
 
     def download_file2(self, url, store_path):
-        filename = url.split("/")[-1]
-        filepath = os.path.join(store_path, filename)
-        urlretrieve(url, filepath)
+        while True:
+            try:
+                # store_path = store_path.encode(encoding='UTF-8',errors='strict')
+                filename = url.split("/")[-1]
+                filepath = os.path.join(store_path, filename)
+                urlretrieve(url, filepath)
+                break
+            except urllib.error.HTTPError as e:
+                self.area.AppendText(filename + '下载异常：' + e.reason + '\n')
+                print(e.reason)
+                print(e.code)
+                time.sleep(3)
+
 
 
 class mainApp(wx.App):
