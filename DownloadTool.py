@@ -1,17 +1,13 @@
+# coding=utf-8
 import wx
 import requests
 import threading
 import os
 from urllib.request import urlretrieve
 import urllib
+from urllib import parse
 from openpyxl import load_workbook
 import time
-from urllib import parse
-
-import sys
-import codecs
-
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 APP_TITLE = u'下载文件工具'
 APP_ICON = 'res/python.ico'
@@ -102,7 +98,7 @@ class mainFrame(wx.Frame):
         print('excel：', self.excelFile.GetValue())
         wb = load_workbook(self.excelFile.GetValue())
         sheet = wb.active
-        rnum = sheet.max_row+1
+        rnum = sheet.max_row + 1
         cnum = sheet.max_column
         for r in range(3, rnum):
             ent_name = sheet.cell(row=r, column=2).value
@@ -113,7 +109,7 @@ class mainFrame(wx.Frame):
         return ent_list
 
     def download(self, ent_name):
-        down_url = "http://www.baidu.com/" + ent_name + ".pdf"
+        down_url = "http://www.baidu.com/" + parse.quote(ent_name) + ".pdf"
         self.download_file2(down_url, self.outPath.GetLabel())
         return True
 
@@ -138,7 +134,6 @@ class mainFrame(wx.Frame):
                 print(e.reason)
                 print(e.code)
                 time.sleep(3)
-
 
 
 class mainApp(wx.App):
