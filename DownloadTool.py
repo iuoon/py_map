@@ -18,11 +18,10 @@ APP_ICON = 'res/python.ico'
 
 class mainFrame(wx.Frame):
 
-
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, -1, APP_TITLE)
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.SetSize((600, 480))
+        self.SetSize((460, 420))
         self.Center()
 
         self.selectExcelBtn = wx.Button(self, -1, u'选择企业Excel', pos=(10, 20), size=(100, -1), style=wx.ALIGN_LEFT)
@@ -33,13 +32,16 @@ class mainFrame(wx.Frame):
         self.selectOutPathBtn = wx.Button(self, -1, u'下载文件路径：', pos=(10, 50), size=(100, -1), style=wx.ALIGN_LEFT)
         self.outPath = wx.TextCtrl(self, -1, '', pos=(130, 50), size=(260, -1), name='outPath', style=wx.TE_LEFT)
 
-        wx.StaticText(self, -1, u'Cookie：', pos=(10, 82), size=(60, -1), style=wx.ALIGN_LEFT)
-        self.cookie = wx.TextCtrl(self, -1, '', pos=(70, 80), size=(260, -1), name='Cookie', style=wx.TE_LEFT)
+        wx.StaticText(self, -1, u'Cookie：', pos=(10, 80), size=(60, -1), style=wx.ALIGN_LEFT)
+        self.cookie = wx.TextCtrl(self, -1, '', pos=(130, 80), size=(260, -1), name='Cookie', style=wx.TE_LEFT)
 
-        self.area = wx.TextCtrl(self, -1, '', pos=(10, 190), size=(320, 200), name='area',
+        wx.StaticText(self, -1, u'年份：', pos=(10, 110), size=(60, -1), style=wx.ALIGN_LEFT)
+        self.year = wx.TextCtrl(self, -1, '2018', pos=(130, 110), size=(60, -1), name='年份', style=wx.TE_LEFT)
+
+        self.btn_start = wx.Button(self, -1, u'开始下载', pos=(10, 140), size=(80, -1))
+
+        self.area = wx.TextCtrl(self, -1, '', pos=(10, 170), size=(380, 200), name='area',
                                 style=wx.TE_LEFT | wx.TE_MULTILINE)
-
-        self.btn_start = wx.Button(self, -1, u'开始下载', pos=(10, 160), size=(80, -1))
 
         self.Bind(wx.EVT_BUTTON, self.OnSelectExcel, self.selectExcelBtn)
         self.Bind(wx.EVT_BUTTON, self.OnSelectOutPath, self.selectOutPathBtn)
@@ -68,6 +70,12 @@ class mainFrame(wx.Frame):
         if self.outPath.GetValue() == '':
             self.area.AppendText("请选择输出文件夹\n")
             return
+        if self.cookie.GetValue() == '':
+            self.area.AppendText("请输入cookie\n")
+            return
+        if self.year.GetValue() == '':
+            self.area.AppendText("请输入年份\n")
+            return
 
         t1 = threading.Thread(target=self.pre_work)
         t1.start()
@@ -78,6 +86,7 @@ class mainFrame(wx.Frame):
         self.outPath.Disable()
         self.cookie.Disable()
         self.btn_start.Disable()
+        self.year.Disable()
         self.area.AppendText("开始加载企业列表\n")
         ent_list = self.read_excel()
         size = len(ent_list)
@@ -96,6 +105,7 @@ class mainFrame(wx.Frame):
         self.outPath.Enable()
         self.cookie.Enable()
         self.btn_start.Enable()
+        self.year.Enable()
 
     def read_excel(self):
         ent_list = []
@@ -131,7 +141,14 @@ class mainFrame(wx.Frame):
                 # store_path = store_path.encode(encoding='UTF-8',errors='strict')
                 filename = url.split("/")[-1]
                 filepath = os.path.join(store_path, filename)
-                urlretrieve(url, filepath)
+
+                def callbackfunc(blocknum, blocksize, totalsize):
+                    percent = 100.0 * blocknum * blocksize / totalsize
+                    if percent > 100:
+                        percent = 100
+                    self.area.AppendText(filename + "下载进度:" + percent + "%\n")
+
+                urlretrieve(url, filepath, callbackfunc)
                 break
             except urllib.error.HTTPError as e:
                 self.area.AppendText(filename + '下载异常：' + e.reason + '\n')
@@ -173,7 +190,7 @@ class mainFrame(wx.Frame):
         }
         try:
             ret = requests.post('http://10.100.248.214/manager/reportInfo/list?hasReport=true', data=paramData,
-                                timeout=30, headers=self.header)
+                                timeout=30, headers=header)
             # df = pd.read_html(ret.text)[0]   # 该页面只返回一个表格，所以取第0个表格
             # print(df)
             soup = BeautifulSoup(ret.text, 'html.parser')
@@ -187,6 +204,7 @@ class mainFrame(wx.Frame):
                 print('没有查询到企业')
                 return
             req_url2 = 'http://10.100.248.214' + req_url2
+            self.searchPdf(req_url2)
 
         except requests.exceptions.ConnectionError:
             print('[ERROR]ConnectionError -- will retry connect')
@@ -209,12 +227,11 @@ class mainFrame(wx.Frame):
             'Cookie': self.cookie.GetLabel()
         }
 
-        token = "a247c4ab8ab04ff1b470c9ff3bdd95fb"
-        req_url3 = 'http://10.100.248.214/report//pdf/month?reportId=dataid&token=a247c4ab8ab04ff1b470c9ff3bdd95fb'
+        req_url3 = 'http://10.100.248.214/report/pdf/month?reportId=dataid&token=a247c4ab8ab04ff1b470c9ff3bdd95fb'
         try:
             # 获取2018年的数据
-            ret = requests.get(req_url2 + '&year=2018',
-                               timeout=30, headers=self.header)
+            ret = requests.get(req_url2 + '&year=' + self.year.GetLabel(),
+                               timeout=30, headers=header)
             soup = BeautifulSoup(ret.text, 'html.parser')
             a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
             for ax in a_ctx:
