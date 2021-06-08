@@ -5,7 +5,7 @@ import threading
 import os
 from urllib.request import urlretrieve
 import urllib
-from urllib import parse
+# from urllib import parse
 from openpyxl import load_workbook
 import time
 # import pandas as pd
@@ -123,8 +123,9 @@ class mainFrame(wx.Frame):
         return ent_list
 
     def download(self, ent_name):
-        down_url = "http://www.baidu.com/" + parse.quote(ent_name) + ".pdf"
-        self.download_file2(down_url, self.outPath.GetLabel())
+        # down_url = "http://www.baidu.com/" + parse.quote(ent_name) + ".pdf"
+        # self.download_file2(down_url, self.outPath.GetLabel())
+        self.searchEnt(ent_name)
         return True
 
     def download_file1(self, url, store_path):
@@ -135,11 +136,11 @@ class mainFrame(wx.Frame):
         with open(filepath, 'wb') as handler:
             handler.write(file_data)
 
-    def download_file2(self, url, store_path):
+    def download_file2(self, url, filename, store_path):
         while True:
             try:
                 # store_path = store_path.encode(encoding='UTF-8',errors='strict')
-                filename = url.split("/")[-1]
+                # filename = url.split("/")[-1]
                 filepath = os.path.join(store_path, filename)
 
                 def callbackfunc(blocknum, blocksize, totalsize):
@@ -171,7 +172,7 @@ class mainFrame(wx.Frame):
             'Pragma': 'no-cache',
             'Content-Type': 'application/x-www-form-urlencoded',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
-            'Cookie': self.cookie.GetLabel()
+            'Cookie': self.cookie.GetValue()
         }
         paramData = {
             'industryName': '',
@@ -189,10 +190,11 @@ class mainFrame(wx.Frame):
             'page': 1
         }
         try:
+            print("获取企业信息列表")
             ret = requests.post('http://10.100.248.214/manager/reportInfo/list?hasReport=true', data=paramData,
                                 timeout=30, headers=header)
             # df = pd.read_html(ret.text)[0]   # 该页面只返回一个表格，所以取第0个表格
-            # print(df)
+            print("获取企业HTML:@@@@@@@@@", ret.text, "&&&&&&&&&")
             soup = BeautifulSoup(ret.text, 'html.parser')
             a_ctx = soup.findAll("a", {'target': 'rightFrame'})  # 抓取a标签
             req_url2 = ''
@@ -204,12 +206,12 @@ class mainFrame(wx.Frame):
                 print('没有查询到企业')
                 return
             req_url2 = 'http://10.100.248.214' + req_url2
-            self.searchPdf(req_url2)
+            self.downloadPdf(ent_name, req_url2)
 
         except requests.exceptions.ConnectionError:
             print('[ERROR]ConnectionError -- will retry connect')
 
-    def searchPdf(self, req_url2):
+    def downloadPdf(self, ent_name, req_url2):
         header = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Referer': 'http://10.100.248.214/manager/reportInfo/list?hasReport=false',
@@ -224,24 +226,29 @@ class mainFrame(wx.Frame):
             'Pragma': 'no-cache',
             'Content-Type': 'application/x-www-form-urlencoded',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
-            'Cookie': self.cookie.GetLabel()
+            'Cookie': self.cookie.GetValue()
         }
 
         req_url3 = 'http://10.100.248.214/report/pdf/month?reportId=dataid&token=a247c4ab8ab04ff1b470c9ff3bdd95fb'
         try:
             # 获取2018年的数据
-            ret = requests.get(req_url2 + '&year=' + self.year.GetLabel(),
+            print("年份：", self.year.GetValue())
+            ret = requests.get(req_url2 + '&year=' + self.year.GetValue(),
                                timeout=30, headers=header)
+            print('获取到数据HTML:@@@@@@@:', ret.text, "&&&&&&&&")
             soup = BeautifulSoup(ret.text, 'html.parser')
             a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
+
             for ax in a_ctx:
                 data_herf = ax.get('href')
+                if data_herf == '':
+                    continue
                 data_id = re.findall("\d+", data_herf)[0]
                 print('获取到数据id:', data_id)
 
                 # 在循环内一个个开始下载文件
                 req_url4 = req_url3.replace("dataid", data_id)
-
+                self.download_file2(req_url4, ent_name+".pdf", self.outPath.GetValue())
 
         except requests.exceptions.ConnectionError:
             print('[ERROR]ConnectionError -- will retry connect')
