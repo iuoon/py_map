@@ -147,7 +147,7 @@ class mainFrame(wx.Frame):
                     percent = 100.0 * blocknum * blocksize / totalsize
                     if percent > 100:
                         percent = 100
-                    self.area.AppendText(filename + "下载进度:" + percent + "%\n")
+                    self.area.AppendText(filename + "下载进度:" + str(percent) + "%\n")
 
                 urlretrieve(url, filepath, callbackfunc)
                 break
