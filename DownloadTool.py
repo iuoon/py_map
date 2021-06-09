@@ -252,6 +252,7 @@ class mainFrame(wx.Frame):
 
             if len(req_url2) <= 0:
                 print('没有查询到企业')
+                self.area.AppendText('没有查询到企业\n')
                 return
             req_url2 = 'http://10.100.248.214' + req_url2
             self.downloadPdf(ent_name, year, hangye, req_url2)
@@ -287,20 +288,31 @@ class mainFrame(wx.Frame):
             soup = BeautifulSoup(ret.text, 'html.parser')
             a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
 
+            findFlag = False
             for ax in a_ctx:
+                parent_text = ax.parent.parent.text
+                if parent_text.find("年报") == -1:
+                   continue
+
                 data_herf = ax.get('href')
                 if data_herf == '':
                     continue
                 data_id = re.findall("\d+", data_herf)[0]
                 print('获取到数据id:', data_id)
+                findFlag = True
 
                 # 在循环内一个个开始下载文件
                 req_url4 = req_url3.replace("dataid", data_id)
                 filePath = os.path.join(self.excelFile.GetValue(), year, hangye)
                 self.download_file2(req_url4, ent_name + ".pdf", filePath)
 
+            if findFlag == False:
+                self.area.AppendText('企业['+ent_name+"]"+year+"没有年报，跳过下载\n")
+
         except requests.exceptions.ConnectionError:
             print('[ERROR]ConnectionError -- will retry connect')
+        except:
+            print("下载遇到遇到异常")
 
 
 class mainApp(wx.App):

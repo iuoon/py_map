@@ -11,6 +11,7 @@ if __name__ == "__main__":
 
         a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
         for ax in a_ctx:
+            # 获取元素的父级元素
             parent_text = ax.parent.parent.text
             if parent_text.find("年报") == -1:
                continue
