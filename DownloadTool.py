@@ -11,6 +11,10 @@ import time
 # import pandas as pd
 from bs4 import BeautifulSoup
 import re
+import socket
+
+# 设置超时时间为30s
+socket.setdefaulttimeout(30)
 
 APP_TITLE = u'下载文件工具'
 APP_ICON = 'res/python.ico'
@@ -24,44 +28,43 @@ class mainFrame(wx.Frame):
         self.SetSize((460, 420))
         self.Center()
 
-        self.selectExcelBtn = wx.Button(self, -1, u'选择企业Excel', pos=(10, 20), size=(100, -1), style=wx.ALIGN_LEFT)
+        self.selectExcelPathBtn = wx.Button(self, -1, u'选择文件夹', pos=(10, 20), size=(100, -1), style=wx.ALIGN_LEFT)
 
         # wx.StaticText(self, -1, u'请求地址：', pos=(10, 20), size=(60, -1), style=wx.ALIGN_LEFT)
         self.excelFile = wx.TextCtrl(self, -1, '', pos=(130, 20), size=(260, -1), name='excelFile', style=wx.TE_LEFT)
 
-        self.selectOutPathBtn = wx.Button(self, -1, u'下载文件路径：', pos=(10, 50), size=(100, -1), style=wx.ALIGN_LEFT)
-        self.outPath = wx.TextCtrl(self, -1, '', pos=(130, 50), size=(260, -1), name='outPath', style=wx.TE_LEFT)
+        # self.selectOutPathBtn = wx.Button(self, -1, u'下载文件路径', pos=(10, 50), size=(100, -1), style=wx.ALIGN_LEFT)
+        # self.outPath = wx.TextCtrl(self, -1, '', pos=(130, 50), size=(260, -1), name='outPath', style=wx.TE_LEFT)
 
         wx.StaticText(self, -1, u'Cookie：', pos=(10, 80), size=(60, -1), style=wx.ALIGN_LEFT)
-        self.cookie = wx.TextCtrl(self, -1, '', pos=(130, 80), size=(260, -1), name='Cookie', style=wx.TE_LEFT)
+        self.cookie = wx.TextCtrl(self, -1, 'SESSION=2aae3275-9b63-452d-b673-1e56976701ba', pos=(130, 80),
+                                  size=(260, -1), name='Cookie', style=wx.TE_LEFT)
 
-        wx.StaticText(self, -1, u'年份：', pos=(10, 110), size=(60, -1), style=wx.ALIGN_LEFT)
-        self.year = wx.TextCtrl(self, -1, '2018', pos=(130, 110), size=(60, -1), name='年份', style=wx.TE_LEFT)
+        # wx.StaticText(self, -1, u'年份：', pos=(10, 110), size=(60, -1), style=wx.ALIGN_LEFT)
+        # self.year = wx.TextCtrl(self, -1, '2018', pos=(130, 110), size=(60, -1), name='年份', style=wx.TE_LEFT)
 
         self.btn_start = wx.Button(self, -1, u'开始下载', pos=(10, 140), size=(80, -1))
 
         self.area = wx.TextCtrl(self, -1, '', pos=(10, 170), size=(380, 200), name='area',
                                 style=wx.TE_LEFT | wx.TE_MULTILINE)
 
-        self.Bind(wx.EVT_BUTTON, self.OnSelectExcel, self.selectExcelBtn)
-        self.Bind(wx.EVT_BUTTON, self.OnSelectOutPath, self.selectOutPathBtn)
+        self.Bind(wx.EVT_BUTTON, self.OnSelectExcel, self.selectExcelPathBtn)
+        # self.Bind(wx.EVT_BUTTON, self.OnSelectOutPath, self.selectOutPathBtn)
         self.btn_start.Bind(wx.EVT_LEFT_DOWN, self.startWork)
 
     def OnSelectExcel(self, event):
-        dlg = wx.FileDialog(self, message=u"选择文件",
-                            defaultDir=os.getcwd(),
-                            defaultFile="")
+        dlg = wx.DirDialog(self, u"选择文件夹", style=wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             print(dlg.GetPath())  # 文件夹路径
             self.excelFile.SetLabelText(dlg.GetPath())
         dlg.Destroy()
 
-    def OnSelectOutPath(self, event):
-        dlg = wx.DirDialog(self, u"选择文件夹", style=wx.DD_DEFAULT_STYLE)
-        if dlg.ShowModal() == wx.ID_OK:
-            print(dlg.GetPath())  # 文件夹路径
-            self.outPath.SetLabelText(dlg.GetPath())
-        dlg.Destroy()
+    # def OnSelectOutPath(self, event):
+    #     dlg = wx.DirDialog(self, u"选择文件夹", style=wx.DD_DEFAULT_STYLE)
+    #     if dlg.ShowModal() == wx.ID_OK:
+    #         print(dlg.GetPath())  # 文件夹路径
+    #         self.outPath.SetLabelText(dlg.GetPath())
+    #     dlg.Destroy()
 
     def startWork(self, event):
         if self.excelFile.GetValue() == '':
@@ -87,45 +90,76 @@ class mainFrame(wx.Frame):
         self.cookie.Disable()
         self.btn_start.Disable()
         self.year.Disable()
-        self.area.AppendText("开始加载企业列表\n")
-        ent_list = self.read_excel()
-        size = len(ent_list)
-        if size <= 0:
-            self.area.AppendText("加载企业失败,结束下载\n")
+        self.area.AppendText("开始查找Excel文件\n")
+        fileDict = self.find_excel()
+        if len(fileDict.items()) <= 0:
+            self.area.AppendText("未找到Excel文件\n")
             return
 
-        self.area.AppendText("加载完毕，开始下载文件\n")
-        for r in range(0, size):
-            ent_name = ent_list.pop(r)
-            self.download(ent_name)
-            time.sleep(0.5)
+        for file, year in fileDict.items():
+            self.area.AppendText("开始加载：" + file + "\n")
+            ent_list = self.read_excel(file)
+            size = len(ent_list)
+            if size <= 0:
+                self.area.AppendText("加载企业失败,结束下载\n")
+                continue
 
-        self.area.AppendText("认证结束\n")
+            self.area.AppendText("加载完毕，开始下载文件\n")
+            for r in range(0, size):
+                entInfo = ent_list.pop(r)
+                ent_name = entInfo.get("entName")
+                hangye = entInfo.get("hangye")
+                if os.path.exists(os.path.join(self.excelFile.GetValue(), year, hangye)) == False:
+                    os.makedirs(os.path.join(self.excelFile.GetValue(), year, hangye))
+                self.download(ent_name, hangye, year)
+                time.sleep(0.5)
+
+        self.area.AppendText("全部下载结束\n")
         self.excelFile.Enable()
         self.outPath.Enable()
         self.cookie.Enable()
         self.btn_start.Enable()
         self.year.Enable()
 
-    def read_excel(self):
+    def find_excel(self):
+        dict = {}
+        for root, dirs, files in os.walk(self.excelFile.GetValue()):
+            print(root)  # 当前目录路径
+            print(dirs)  # 当前路径下所有子目录
+            print(files)  # 当前路径下所有非目录子文件
+            for file in files:
+                fileNameArr = os.path.splitext(file)
+                if fileNameArr[1] == '.xlsx' or fileNameArr[1] == '.xls':
+                    fileInfoArr = fileNameArr[0].split("-")
+                    if len(fileInfoArr) > 2:
+                        self.area.AppendText("找到文件：" + file + "\n")
+                        dict[file] = fileInfoArr[2]  # os.path.join(self.excelFile.GetValue(), file)
+                        # 创建年份文件夹
+                        if os.path.exists(self.excelFile.GetValue() + "\\" + fileInfoArr[2]) == False:
+                            os.makedirs(self.excelFile.GetValue() + "\\" + fileInfoArr[2])
+        return dict
+
+    def read_excel(self, file):
         ent_list = []
-        print('excel：', self.excelFile.GetValue())
-        wb = load_workbook(self.excelFile.GetValue())
+        print('excel：', os.path.join(self.excelFile.GetValue(), file))
+        wb = load_workbook(os.path.join(self.excelFile.GetValue(), file))
         sheet = wb.active
         rnum = sheet.max_row + 1
         cnum = sheet.max_column
         for r in range(3, rnum):
             ent_name = sheet.cell(row=r, column=2).value
+            hangye = sheet.cell(row=r, column=3).value
             print(ent_name)
             if ent_name is None:
                 continue
-            ent_list.append(ent_name)
+            entInfo = {"entName": ent_name, "hangye": hangye}
+            ent_list.append(entInfo)
         return ent_list
 
-    def download(self, ent_name):
+    def download(self, ent_name, hangye, year):
         # down_url = "http://www.baidu.com/" + parse.quote(ent_name) + ".pdf"
         # self.download_file2(down_url, self.outPath.GetLabel())
-        self.searchEnt(ent_name)
+        self.searchEnt(ent_name, hangye, year)
         return True
 
     def download_file1(self, url, store_path):
@@ -143,21 +177,35 @@ class mainFrame(wx.Frame):
                 # filename = url.split("/")[-1]
                 filepath = os.path.join(store_path, filename)
 
-                def callbackfunc(blocknum, blocksize, totalsize):
-                    percent = 100.0 * blocknum * blocksize / totalsize
-                    if percent > 100:
-                        percent = 100
-                    self.area.AppendText(filename + "下载进度:" + str(percent) + "%\n")
-
-                urlretrieve(url, filepath, callbackfunc)
+                # def callbackfunc(blocknum, blocksize, totalsize):
+                #     percent = 100.0 * blocknum * blocksize / totalsize
+                #     if percent > 100:
+                #         percent = 100
+                #     self.area.AppendText(filename + "下载进度:" + str(percent) + "%\n")
+                self.area.AppendText("[" + filename + "]文件下载中...\n")
+                urlretrieve(url, filepath)
+                self.area.AppendText("[" + filename + "]文件下载完毕...\n")
                 break
+            except socket.timeout:
+                count = 1
+                while count <= 5:
+                    try:
+                        urllib.request.urlretrieve(url, filepath)
+                        break
+                    except socket.timeout:
+                        err_info = "[" + filename + ']下载超时,重新发起下载请求第%d次' % count
+                        print(err_info)
+                        self.area.AppendText(err_info + '\n')
+                        count += 1
+                if count > 5:
+                    print("downloading picture fialed!")
             except urllib.error.HTTPError as e:
-                self.area.AppendText(filename + '下载异常：' + e.reason + '\n')
+                self.area.AppendText("[" + filename + "]下载异常：" + e.reason + '\n')
                 print(e.reason)
                 print(e.code)
                 time.sleep(3)
 
-    def searchEnt(self, ent_name):
+    def searchEnt(self, ent_name, hangye, year):
         header = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Referer': 'http://10.100.248.214/manager/reportInfo/list?hasReport=false',
@@ -194,7 +242,7 @@ class mainFrame(wx.Frame):
             ret = requests.post('http://10.100.248.214/manager/reportInfo/list?hasReport=true', data=paramData,
                                 timeout=30, headers=header)
             # df = pd.read_html(ret.text)[0]   # 该页面只返回一个表格，所以取第0个表格
-            print("获取企业HTML:@@@@@@@@@", ret.text, "&&&&&&&&&")
+            # print("获取企业HTML:@@@@@@@@@", ret.text, "&&&&&&&&&")
             soup = BeautifulSoup(ret.text, 'html.parser')
             a_ctx = soup.findAll("a", {'target': 'rightFrame'})  # 抓取a标签
             req_url2 = ''
@@ -206,12 +254,12 @@ class mainFrame(wx.Frame):
                 print('没有查询到企业')
                 return
             req_url2 = 'http://10.100.248.214' + req_url2
-            self.downloadPdf(ent_name, req_url2)
+            self.downloadPdf(ent_name, year, hangye, req_url2)
 
         except requests.exceptions.ConnectionError:
             print('[ERROR]ConnectionError -- will retry connect')
 
-    def downloadPdf(self, ent_name, req_url2):
+    def downloadPdf(self, ent_name, year, hangye, req_url2):
         header = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Referer': 'http://10.100.248.214/manager/reportInfo/list?hasReport=false',
@@ -232,10 +280,10 @@ class mainFrame(wx.Frame):
         req_url3 = 'http://10.100.248.214/report/pdf/month?reportId=dataid&token=a247c4ab8ab04ff1b470c9ff3bdd95fb'
         try:
             # 获取2018年的数据
-            print("年份：", self.year.GetValue())
-            ret = requests.get(req_url2 + '&year=' + self.year.GetValue(),
+            print("年份：", year)
+            ret = requests.get(req_url2 + '&year=' + year,
                                timeout=30, headers=header)
-            print('获取到数据HTML:@@@@@@@:', ret.text, "&&&&&&&&")
+            # print('获取到数据HTML:@@@@@@@:', ret.text, "&&&&&&&&")
             soup = BeautifulSoup(ret.text, 'html.parser')
             a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
 
@@ -248,7 +296,8 @@ class mainFrame(wx.Frame):
 
                 # 在循环内一个个开始下载文件
                 req_url4 = req_url3.replace("dataid", data_id)
-                self.download_file2(req_url4, ent_name+".pdf", self.outPath.GetValue())
+                filePath = os.path.join(self.excelFile.GetValue(), year, hangye)
+                self.download_file2(req_url4, ent_name + ".pdf", filePath)
 
         except requests.exceptions.ConnectionError:
             print('[ERROR]ConnectionError -- will retry connect')
