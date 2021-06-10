@@ -8,13 +8,17 @@ if __name__ == "__main__":
         # df = pd.read_html(data)[0]
         # print(df)
         soup = BeautifulSoup(data, 'html.parser')
-
+        s_ctx = soup.findAll("span", {'class': 'page-count'})  # 抓取总条数
+        totalCount = int(s_ctx[0].contents[1])
+        totalPage = int(totalCount / 10) + 1
+        for pageNo in (2, totalPage):
+            print(pageNo)
         a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})  # 抓取a标签
         for ax in a_ctx:
             # 获取元素的父级元素
             parent_text = ax.parent.parent.text
             if parent_text.find("年报") == -1:
-               continue
+                continue
             data_herf = ax.get('href')
-            data_id = re.findall("\d+",data_herf)[0]
+            data_id = re.findall("\d+", data_herf)[0]
             print('获取到数据id:', data_id)
