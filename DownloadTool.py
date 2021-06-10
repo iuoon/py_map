@@ -37,13 +37,13 @@ class mainFrame(wx.Frame):
         # self.outPath = wx.TextCtrl(self, -1, '', pos=(130, 50), size=(260, -1), name='outPath', style=wx.TE_LEFT)
 
         wx.StaticText(self, -1, u'Cookie：', pos=(10, 80), size=(60, -1), style=wx.ALIGN_LEFT)
-        self.cookie = wx.TextCtrl(self, -1, 'SESSION=2aae3275-9b63-452d-b673-1e56976701ba', pos=(130, 80),
+        self.cookie = wx.TextCtrl(self, -1, 'SESSION=bd5f9323-30a0-481d-98ad-18697fdd3f24', pos=(130, 80),
                                   size=(260, -1), name='Cookie', style=wx.TE_LEFT)
 
         # wx.StaticText(self, -1, u'年份：', pos=(10, 110), size=(60, -1), style=wx.ALIGN_LEFT)
         # self.year = wx.TextCtrl(self, -1, '2018', pos=(130, 110), size=(60, -1), name='年份', style=wx.TE_LEFT)
 
-        self.btn_start = wx.Button(self, -1, u'开始下载', pos=(10, 140), size=(80, -1))
+        self.btn_start = wx.Button(self, -1, u'开始下载', pos=(10, 130), size=(80, -1))
 
         self.area = wx.TextCtrl(self, -1, '', pos=(10, 170), size=(380, 200), name='area',
                                 style=wx.TE_LEFT | wx.TE_MULTILINE)
