@@ -12,6 +12,7 @@ import time
 from bs4 import BeautifulSoup
 import re
 import socket
+import datetime
 
 # 设置超时时间为30s
 socket.setdefaulttimeout(30)
@@ -36,12 +37,14 @@ class mainFrame(wx.Frame):
         # self.selectOutPathBtn = wx.Button(self, -1, u'下载文件路径', pos=(10, 50), size=(100, -1), style=wx.ALIGN_LEFT)
         # self.outPath = wx.TextCtrl(self, -1, '', pos=(130, 50), size=(260, -1), name='outPath', style=wx.TE_LEFT)
 
-        wx.StaticText(self, -1, u'Cookie：', pos=(10, 80), size=(60, -1), style=wx.ALIGN_LEFT)
-        self.cookie = wx.TextCtrl(self, -1, 'SESSION=bd5f9323-30a0-481d-98ad-18697fdd3f24', pos=(130, 80),
+        wx.StaticText(self, -1, u'Cookie：', pos=(10, 50), size=(60, -1), style=wx.ALIGN_LEFT)
+        self.cookie = wx.TextCtrl(self, -1, 'SESSION=bd5f9323-30a0-481d-98ad-18697fdd3f24', pos=(130, 50),
                                   size=(260, -1), name='Cookie', style=wx.TE_LEFT)
 
-        # wx.StaticText(self, -1, u'年份：', pos=(10, 110), size=(60, -1), style=wx.ALIGN_LEFT)
-        # self.year = wx.TextCtrl(self, -1, '2018', pos=(130, 110), size=(60, -1), name='年份', style=wx.TE_LEFT)
+        wx.StaticText(self, -1, u'下载时段：', pos=(10, 80), size=(60, -1), style=wx.ALIGN_LEFT)
+        self.startHour = wx.TextCtrl(self, -1, '20', pos=(130, 80), size=(40, -1), name='开始时', style=wx.TE_LEFT)
+        self.endHour = wx.TextCtrl(self, -1, '8', pos=(180, 80), size=(40, -1), name='结束时', style=wx.TE_LEFT)
+
 
         self.btn_start = wx.Button(self, -1, u'开始下载', pos=(10, 130), size=(80, -1))
 
@@ -51,6 +54,9 @@ class mainFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnSelectExcel, self.selectExcelPathBtn)
         # self.Bind(wx.EVT_BUTTON, self.OnSelectOutPath, self.selectOutPathBtn)
         self.btn_start.Bind(wx.EVT_LEFT_DOWN, self.startWork)
+
+        # 设置是否暂停
+        self.pause = False
 
     def OnSelectExcel(self, event):
         dlg = wx.DirDialog(self, u"选择文件夹", style=wx.DD_DEFAULT_STYLE)
@@ -70,9 +76,6 @@ class mainFrame(wx.Frame):
         if self.excelFile.GetValue() == '':
             self.area.AppendText("请选择Excel文件\n")
             return
-        # if self.outPath.GetValue() == '':
-        #     self.area.AppendText("请选择输出文件夹\n")
-        #     return
         if self.cookie.GetValue() == '':
             self.area.AppendText("请输入cookie\n")
             return
@@ -82,8 +85,14 @@ class mainFrame(wx.Frame):
 
         t1 = threading.Thread(target=self.pre_work)
         t1.start()
+        t2 = threading.Thread(target=self.keep_alive)
+        t2.setDaemon(True)
+        t2.start()
 
     def pre_work(self):
+
+        if self.timeInDate() == False:
+            self.pause = True
 
         self.excelFile.Disable()
         self.selectExcelPathBtn.Disable()
@@ -112,6 +121,13 @@ class mainFrame(wx.Frame):
 
             self.area.AppendText("加载完毕，开始下载文件\n")
             for r in range(0, size):
+                while True:
+                    if self.pause == False:
+                        break
+                    else:
+                        self.area.AppendText("当前时间未在指定时间段内，等待中...\n")
+                        time.sleep(30)
+
                 entInfo = ent_list.pop(r)
                 ent_name = entInfo.get("entName")
                 hangye = entInfo.get("hangye")
@@ -130,6 +146,33 @@ class mainFrame(wx.Frame):
         self.btn_start.Enable()
         self.selectExcelPathBtn.Enable()
         # self.year.Enable()
+
+    def keep_alive(self):
+        print("刷新系统保持活跃")
+        while True:
+            if self.timeInDate() == False:
+                self.pause = True
+            # 调用系统接口，保持session活跃
+
+            time.sleep(60)
+
+    def timeInDate(self):
+        curtHour = datetime.datetime.now().hour
+        starthour = self.startHour.GetValue()
+        endhour = self.endHour.GetValue()
+        if starthour != "" and endhour != "":
+            sh = int(starthour)
+            eh = int(endhour)
+            if eh < sh and curtHour>=sh and curtHour<24:
+                return True
+            if eh > sh and curtHour>=sh and curtHour<eh:
+                return True
+        else:
+            return True
+
+        return False
+
+
 
     def find_excel(self):
         dict = {}
@@ -323,7 +366,8 @@ class mainFrame(wx.Frame):
             if findFlag == False and totalPage > 1:
                 time.sleep(0.3)
                 for pageNo in (2, totalPage):
-                    ret = requests.get(req_url2 + '&year=' + year + '&pageNo=' + str(pageNo), timeout=30, headers=header)
+                    ret = requests.get(req_url2 + '&year=' + year + '&pageNo=' + str(pageNo), timeout=30,
+                                       headers=header)
                     soup = BeautifulSoup(ret.text, 'html.parser')
                     a_ctx = soup.findAll("a", {'class': 'btn-base btn-noborder icon-download'})
                     for ax in a_ctx:
