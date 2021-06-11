@@ -111,6 +111,7 @@ class mainFrame(wx.Frame):
             return
 
         for file, year in fileDict.items():
+            self.area.Clear()
             self.area.AppendText("开始加载：" + file + "\n")
             ent_list = self.read_excel(file)
             t1 = time.time()
@@ -128,13 +129,14 @@ class mainFrame(wx.Frame):
                         self.area.AppendText("当前时间未在指定时间段内，等待中...\n")
                         time.sleep(30)
 
-                entInfo = ent_list.pop(r)
+                entInfo = ent_list[r]
                 ent_name = entInfo.get("entName")
                 hangye = entInfo.get("hangye")
+                print(ent_name)
                 if os.path.exists(os.path.join(self.excelFile.GetValue(), year, hangye)) == False:
                     os.makedirs(os.path.join(self.excelFile.GetValue(), year, hangye))
                 self.download(ent_name, hangye, year)
-                time.sleep(0.5)
+                time.sleep(0.3)
             t2 = time.time()
             t3 = int(t2) - int(t1)
             self.area.AppendText("下载耗时秒：" + str(t3) + "\n")
@@ -149,12 +151,28 @@ class mainFrame(wx.Frame):
 
     def keep_alive(self):
         print("刷新系统保持活跃")
+        header = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Referer': 'http://10.100.248.214/manager/reportInfo/list?hasReport=false',
+            'x-requested-with': 'XMLHttpRequest',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Accept-Encoding': 'gzip, deflate',
+            'Host': '10.100.248.214',
+            'Origin': 'http://10.100.248.214',
+            'Pragma': 'no-cache',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
+            'Cookie': self.cookie.GetValue()
+        }
         while True:
             if self.timeInDate() == False:
                 self.pause = True
             # 调用系统接口，保持session活跃
-
-            time.sleep(60)
+            ret = requests.get('http://10.100.248.214/manager/index',  timeout=10, headers=header)
+            time.sleep(30)
 
     def timeInDate(self):
         curtHour = datetime.datetime.now().hour
