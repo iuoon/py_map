@@ -1,23 +1,13 @@
 # coding=utf-8
 import wx
-import requests
 import threading
 import os
-from urllib.request import urlretrieve
-import urllib
-# from urllib import parse
 from openpyxl import load_workbook
 import time
-# import pandas as pd
 from bs4 import BeautifulSoup
-import re
-import socket
-import datetime
+import shutil
 
-# 设置超时时间为30s
-socket.setdefaulttimeout(30)
-
-APP_TITLE = u'下载文件工具'
+APP_TITLE = u'工具'
 APP_ICON = 'res/python.ico'
 
 
@@ -29,7 +19,7 @@ class mainFrame(wx.Frame):
         self.SetSize((460, 420))
         self.Center()
 
-        self.selectExcelPathBtn = wx.Button(self, -1, u'选择文件夹', pos=(10, 20), size=(100, -1), style=wx.ALIGN_LEFT)
+        self.selectExcelPathBtn = wx.Button(self, -1, u'选择Excel文件', pos=(10, 20), size=(100, -1), style=wx.ALIGN_LEFT)
 
         # wx.StaticText(self, -1, u'请求地址：', pos=(10, 20), size=(60, -1), style=wx.ALIGN_LEFT)
         self.excelFile = wx.TextCtrl(self, -1, '', pos=(130, 20), size=(260, -1), name='excelFile', style=wx.TE_LEFT)
@@ -80,8 +70,7 @@ class mainFrame(wx.Frame):
         self.selectPdfPathBtn.Disable()
         self.pdfPath.Disable()
         self.btn_start.Disable()
-        if os.path.exists(os.path.join(self.pdfPath.GetValue(), "temp")) == False:
-            os.makedirs(os.path.join(self.pdfPath.GetValue(), "temp"))
+
         self.area.AppendText("加载：" + self.excelFile.GetValue() + "\n")
         t1 = time.time()
         wb = load_workbook(self.excelFile.GetValue())
@@ -99,35 +88,43 @@ class mainFrame(wx.Frame):
             if os.path.exists(pdpath) == False:
                 self.area.AppendText("未找到：" + ent_name + ".pdf，跳过\n")
                 continue
+            if os.path.exists(os.path.join(self.pdfPath.GetValue(), "temp")) == False:
+                os.makedirs(os.path.join(self.pdfPath.GetValue(), "temp"))
+            else:
+                shutil.rmtree(os.path.join(self.pdfPath.GetValue(), "temp"))
+                os.makedirs(os.path.join(self.pdfPath.GetValue(), "temp"))
             ret = os.system(
                 "pdf2htmlEX\\pdf2htmlEX.exe -f 3 -l 6 --zoom 1 --dest-dir " + os.path.join(self.pdfPath.GetValue(),
                                                                                            "temp") + " " + pdpath)
             print(ret)
             fileName = ""
             for root, dirs, files in os.walk(os.path.join(self.pdfPath.GetValue(), "temp")):
+                if len(files) <= 0:
+                    self.area.AppendText("文件已损坏：" + ent_name + ".pdf，跳过\n")
+                    continue
                 fileName = files[0]
                 break
+            if fileName == "":
+                continue
             with open(os.path.join(self.pdfPath.GetValue(), "temp", fileName), "r", encoding="UTF-8") as f:  # 打开文件
                 data = f.read()  # 读取文件
                 soup = BeautifulSoup(data, 'html.parser')
                 div_list = soup.find_all('div')
-                for i in range(0,len(div_list)):
+                for i in range(0, len(div_list)):
                     ctx = div_list[i].text.strip(' ')
                     if ctx.startswith("熟料产量"):
-                        #print(ctx)
+                        # print(ctx)
                         text_sl = ctx.replace("熟料产量", "").replace(" ", "").replace("吨", "")
-                        #print(text_sl)
+                        # print(text_sl)
                         sheet.cell(row=r, column=3).value = text_sl
                     if ctx.startswith("耗煤量"):
                         # print(ctx)
                         text_hm = ctx.replace("耗煤量", "").replace(" ", "").replace("吨", "")
-                        #print(text_hm)
+                        # print(text_hm)
                         sheet.cell(row=r, column=4).value = text_hm
-            self.area.AppendText( ent_name + ".pdf 解析完毕\n")
-            self.area.AppendText(self.excelFile.GetValue() + " 更新\n")
-            wb.save(self.excelFile.GetValue())
-
-
+            self.area.AppendText(ent_name + ".pdf 解析完毕\n")
+        self.area.AppendText(self.excelFile.GetValue() + " 更新\n")
+        wb.save(self.excelFile.GetValue())
 
         t2 = time.time()
         t3 = int(t2) - int(t1)
@@ -137,7 +134,7 @@ class mainFrame(wx.Frame):
         self.excelFile.Enable()
         self.selectPdfPathBtn.Enable()
         self.selectExcelPathBtn.Enable()
-        self.pdfPath.Disable()
+        self.pdfPath.Enable()
         self.btn_start.Enable()
 
     def read_excel(self, file):
