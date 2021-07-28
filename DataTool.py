@@ -97,17 +97,50 @@ class mainFrame(wx.Frame):
             df = pd.read_html(ret.text)[0]  # 该页面只返回一个表格，所以取第0个表格
             print(df.values)
             df.to_excel(filePath + "\\result.xlsx", index=False, header=False)
+            # 抓取查看
+            # wb = load_workbook(filePath + "\\result.xlsx")
+            # sheet = wb.active
+            # cnum = sheet.max_column
+            # sheet.delete_cols(cnum)
+            # wb.save(filePath + "\\result.xlsx")
 
-            # soup = BeautifulSoup(ret.text, 'html.parser')
-            # a_ctx = soup.findAll("a", {'target': 'rightFrame'})  # 抓取a标签
-            # req_url2 = ''
-            # for ax in a_ctx:
-            #     req_url2 = ax.get('href')
-            #     print('获取到企业详情url', req_url2)
-            #
-            # if len(req_url2) <= 0:
-            #     print('没有查询到企业')
-            #     return
+            soup = BeautifulSoup(ret.text, 'html.parser')
+            div_ctx = soup.findAll("div", {'class': 'fr margin-t-33 margin-b-20'})[0]  # 抓取总条数
+            total_text = div_ctx.text
+            total_text = total_text.split("\r\n")[2]
+            total_text = total_text.replace('\t', '')
+            total_text = total_text.replace(' ', '')
+            total_text = total_text.replace('共', '')
+            total_text = total_text.replace('页', '')
+            total = int(total_text)
+            totalPage = 1
+            if total % 10 == 0:
+                totalPage = int(total / 10)
+            else:
+                totalPage = int(total / 10) + 1
+
+            if totalPage < 2:
+                return
+            for pageNo in range(2, 4):
+                paramData['page.pageNo'] = pageNo
+                ret = requests.post('http://permit.mee.gov.cn/perxxgkinfo/syssb/xkgg/xkgg!licenseInformation.action',
+                                    data=paramData,
+                                    timeout=30, headers=header)
+                df2 = pd.read_html(ret.text)[0]  # 该页面只返回一个表格，所以取第0个表格
+                print(df2.values)
+                # excel_writer = pd.ExcelWriter(filePath + "\\result.xlsx", engine='openpyxl')
+                with pd.ExcelWriter(filePath + "\\result.xlsx") as writer:
+                    df2.to_excel(writer, sheet_name="Sheet1", index=False, header=False)
+                # print(df.drop(['查看'], axis=0))
+                # book = load_workbook(filePath + "\\result.xlsx")
+                # excel_writer.book = book
+                # df.to_excel(excel_writer, sheet_name="Sheet1")
+                # excel_writer.close()
+
+
+
+
+
 
         except requests.exceptions.ConnectionError:
             self.area.AppendText('连接服务器超时\n')
