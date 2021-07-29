@@ -2,6 +2,7 @@
 import wx
 import threading
 import os
+import openpyxl
 from openpyxl import load_workbook
 import time
 from bs4 import BeautifulSoup
@@ -96,17 +97,34 @@ class mainFrame(wx.Frame):
             # print("获取列表数据HTML: ", ret.text)
             df = pd.read_html(ret.text)[0]  # 该页面只返回一个表格，所以取第0个表格
             print(df.values)
-            df.to_excel(filePath + "\\result.xlsx", index=False, header=False)
-            # 抓取查看
-            # wb = load_workbook(filePath + "\\result.xlsx")
-            # sheet = wb.active
-            # cnum = sheet.max_column
-            # sheet.delete_cols(cnum)
-            # wb.save(filePath + "\\result.xlsx")
-
             soup = BeautifulSoup(ret.text, 'html.parser')
-            div_ctx = soup.findAll("div", {'class': 'fr margin-t-33 margin-b-20'})[0]  # 抓取总条数
-            total_text = div_ctx.text
+            href_ctx = soup.findAll("td", {'class': 'bgcolor1'})
+
+            # df.to_excel(filePath + "\\result.xlsx", index=False, header=False)
+            detailPath = filePath + "\\result.xlsx"
+            if os.path.exists(detailPath) == True:
+                os.remove(detailPath)
+            wb0 = openpyxl.Workbook()
+            sheet = wb0.active
+            cnum = sheet.max_column
+            rows_old = sheet.max_row
+            dataLen = len(df.values)
+            for i in range(0, dataLen):
+                detail_url = ''
+                if i > 0:
+                    a = href_ctx[i - 1].next
+                    detail_url = 'http://permit.mee.gov.cn' + a.get('href')
+                data = []
+                for j in range(0, len(df.values[i])):
+                    if j < len(df.values[i]) - 1:
+                        data.append(df.values[i][j])
+                if detail_url != '':
+                    data.append(detail_url)
+                sheet.append(data)
+            wb0.save(detailPath)
+
+            total_ctx = soup.findAll("div", {'class': 'fr margin-t-33 margin-b-20'})[0]  # 抓取总条数
+            total_text = total_ctx.text
             total_text = total_text.split("\r\n")[2]
             total_text = total_text.replace('\t', '')
             total_text = total_text.replace(' ', '')
@@ -118,24 +136,38 @@ class mainFrame(wx.Frame):
                 totalPage = int(total / 10)
             else:
                 totalPage = int(total / 10) + 1
-
             if totalPage < 2:
                 return
-            for pageNo in range(2, 4):
+            for pageNo in range(2, totalPage):
+                time.sleep(0.3)
                 paramData['page.pageNo'] = pageNo
                 ret = requests.post('http://permit.mee.gov.cn/perxxgkinfo/syssb/xkgg/xkgg!licenseInformation.action',
                                     data=paramData,
                                     timeout=30, headers=header)
                 df2 = pd.read_html(ret.text)[0]  # 该页面只返回一个表格，所以取第0个表格
                 print(df2.values)
-                # excel_writer = pd.ExcelWriter(filePath + "\\result.xlsx", engine='openpyxl')
-                with pd.ExcelWriter(filePath + "\\result.xlsx") as writer:
-                    df2.to_excel(writer, sheet_name="Sheet1", index=False, header=False)
-                # print(df.drop(['查看'], axis=0))
-                # book = load_workbook(filePath + "\\result.xlsx")
-                # excel_writer.book = book
-                # df.to_excel(excel_writer, sheet_name="Sheet1")
-                # excel_writer.close()
+                soup = BeautifulSoup(ret.text, 'html.parser')
+                href_ctx = soup.findAll("td", {'class': 'bgcolor1'})
+
+                wb = load_workbook(detailPath)
+                sheet = wb.active
+                cnum = sheet.max_column
+                rows_old = sheet.max_row
+                dataLen = len(df2.values)
+                for i in range(1, dataLen):
+                    detail_url = ''
+                    if i > 0:
+                        a = href_ctx[i - 1].next
+                        detail_url = 'http://permit.mee.gov.cn' + a.get('href')
+                    data = []
+                    for j in range(0, len(df.values[i])):
+                        if j < len(df.values[i]) - 1:
+                            data.append(df.values[i][j])
+                    if detail_url != '':
+                        data.append(detail_url)
+                    sheet.append(data)
+                wb.save(detailPath)
+
 
 
 
